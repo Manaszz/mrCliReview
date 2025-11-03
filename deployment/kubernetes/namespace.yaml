@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: code-review
+  labels:
+    name: code-review
+    environment: production
+
+

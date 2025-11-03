@@ -1,0 +1,9 @@
+# Ignore all npm packages
+*.tgz
+*.tar.gz
+
+# But keep this directory in git
+!.gitignore
+!README.md
+
+

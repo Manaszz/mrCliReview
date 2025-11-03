@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-review-api
+  namespace: code-review
+  labels:
+    app: code-review-api
+spec:
+  type: ClusterIP
+  selector:
+    app: code-review-api
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  sessionAffinity: None
+
+

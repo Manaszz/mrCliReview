@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: code-review-config
+  namespace: code-review
+data:
+  # Model Configuration
+  MODEL_API_URL: "https://your-model-api.example.com/v1"
+  DEEPSEEK_MODEL_NAME: "deepseek-v3.1-terminus"
+  QWEN3_MODEL_NAME: "qwen3-coder-32b"
+  
+  # CLI Configuration
+  DEFAULT_CLI_AGENT: "CLINE"
+  CLINE_PARALLEL_TASKS: "5"
+  QWEN_PARALLEL_TASKS: "3"
+  REVIEW_TIMEOUT: "300"
+  
+  # GitLab Configuration
+  GITLAB_URL: "https://gitlab.example.com"
+  
+  # Application Configuration
+  VERSION: "2.0.0"
+  API_TITLE: "AI Code Review System"
+  LOG_LEVEL: "INFO"
+  WORK_DIR: "/tmp/review"
+  PROMPTS_PATH: "/app/prompts"
+  DEFAULT_RULES_PATH: "/app/rules/java-spring-boot"
+  DEFAULT_LANGUAGE: "java"
+  
+  # Optional Features
+  CONFLUENCE_RULES_ENABLED: "false"
+  MCP_RAG_ENABLED: "false"
+
+

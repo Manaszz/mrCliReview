@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-review-api
+  namespace: code-review
+  labels:
+    app: code-review-api
+    version: v2.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: code-review-api
+  template:
+    metadata:
+      labels:
+        app: code-review-api
+        version: v2.0.0
+    spec:
+      containers:
+      - name: api
+        image: your-registry.example.com/code-review-api:2.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        
+        envFrom:
+        - configMapRef:
+            name: code-review-config
+        - secretRef:
+            name: code-review-secrets
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        volumeMounts:
+        - name: prompts
+          mountPath: /app/prompts
+          readOnly: true
+        - name: rules
+          mountPath: /app/rules
+          readOnly: true
+        - name: work-dir
+          mountPath: /tmp/review
+      
+      volumes:
+      - name: prompts
+        configMap:
+          name: code-review-prompts
+      - name: rules
+        configMap:
+          name: code-review-rules
+      - name: work-dir
+        emptyDir:
+          sizeLimit: 10Gi
+      
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+
+

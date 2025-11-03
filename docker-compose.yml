@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  review-api:
+    build: .
+    container_name: code-review-api
+    ports:
+      - "8000:8000"
+    environment:
+      # Model API Configuration
+      - MODEL_API_URL=${MODEL_API_URL}
+      - MODEL_API_KEY=${MODEL_API_KEY}
+      - DEEPSEEK_MODEL_NAME=${DEEPSEEK_MODEL_NAME:-deepseek-v3.1-terminus}
+      - QWEN3_MODEL_NAME=${QWEN3_MODEL_NAME:-qwen3-coder-32b}
+      
+      # CLI Configuration
+      - DEFAULT_CLI_AGENT=${DEFAULT_CLI_AGENT:-CLINE}
+      - CLINE_PARALLEL_TASKS=${CLINE_PARALLEL_TASKS:-5}
+      - QWEN_PARALLEL_TASKS=${QWEN_PARALLEL_TASKS:-3}
+      - REVIEW_TIMEOUT=${REVIEW_TIMEOUT:-300}
+      
+      # GitLab Configuration
+      - GITLAB_URL=${GITLAB_URL}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      
+      # Application Configuration
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - WORK_DIR=/tmp/review
+      - PROMPTS_PATH=/app/prompts
+      - DEFAULT_RULES_PATH=/app/rules/java-spring-boot
+      
+      # Optional: Confluence
+      - CONFLUENCE_RULES_ENABLED=${CONFLUENCE_RULES_ENABLED:-false}
+      - CONFLUENCE_URL=${CONFLUENCE_URL:-}
+      - CONFLUENCE_API_TOKEN=${CONFLUENCE_API_TOKEN:-}
+      
+      # Optional: MCP RAG
+      - MCP_RAG_ENABLED=${MCP_RAG_ENABLED:-false}
+      - MCP_SERVER_URL=${MCP_SERVER_URL:-}
+    
+    env_file:
+      - .env
+    
+    restart: unless-stopped
+    
+    networks:
+      - review-network
+    
+    volumes:
+      # Mount prompts and rules for easy updates without rebuild
+      - ./prompts:/app/prompts:ro
+      - ./rules:/app/rules:ro
+      # Logs
+      - ./logs:/app/logs
+      # Work directory for repository clones (ephemeral)
+      - review-work:/tmp/review
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  review-network:
+    driver: bridge
+
+volumes:
+  review-work:
+    driver: local

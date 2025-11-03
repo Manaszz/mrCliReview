@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: code-review-api
+  namespace: code-review
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Optional: for TLS
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: code-review.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: code-review-api
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - code-review.example.com
+    secretName: code-review-tls
+
+
