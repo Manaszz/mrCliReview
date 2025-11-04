@@ -129,13 +129,21 @@ Memory Bank is based on **Cursor's Memory Bank (v1.2 Final)** methodology. It's 
 
 #### If Memory Bank Exists (PRIMARY MODE):
 1. **Updates** Memory Bank with changes from current MR:
-   - Analyzes MR changes via `git diff`
-   - Updates `activeContext.md` with recent changes (MANDATORY)
-   - Updates `systemPatterns.md` if architectural changes detected
-   - Updates `techContext.md` if new dependencies/technologies added
-   - Updates `progress.md` if features completed or status changed
-   - Updates `changelog.md` with MR entry (MANDATORY)
-   - **Commits changes back to MR branch** with `[skip ci]` tag
+   - **CLI Agent**:
+     - Analyzes MR changes via `git diff`
+     - Determines which files need updates
+     - **WRITES updated content** to Memory Bank files:
+       - `activeContext.md` - recent changes (MANDATORY)
+       - `systemPatterns.md` - if architectural changes
+       - `techContext.md` - if new dependencies/technologies
+       - `progress.md` - if features completed or status changed
+       - `changelog.md` - MR entry (MANDATORY)
+     - Returns `files_modified` in JSON
+   - **FastAPI**:
+     - Detects modified files in `memory-bank/`
+     - Stages: `git add memory-bank/`
+     - Commits with `[skip ci]` tag
+     - Pushes to MR branch
 
 2. **Validates** all core files are present (validation mode - rare)
 3. **Reports** status of each file
@@ -216,10 +224,15 @@ update_summary:
   issues_resolved:
     - "Fixed null pointer in user service"
 
-commits_made:
+cli_actions:
+  - "Analyzed MR changes via git diff"
+  - "Wrote updated content to 5 Memory Bank files"
+  
+fastapi_actions:
   - commit: "a1b2c3d"
     message: "docs: Update Memory Bank for MR !123 [skip ci]"
     files: ["memory-bank/activeContext.md", "memory-bank/changelog.md", ...]
+  - pushed_to: "feature/user-authentication"
 
 recommendations:
   - "Consider adding authentication to productContext.md"
@@ -288,20 +301,34 @@ Memory Bank provides continuous context across all reviews:
 When MEMORY_BANK agent runs on an MR:
 
 ```mermaid
-graph LR
-    A[MR Received] --> B[Check memory-bank/]
-    B --> C{Exists?}
-    C -->|Yes| D[Analyze MR Changes]
-    D --> E[Update Files]
-    E --> F[Commit to MR Branch]
-    C -->|No| G[Initialize New Bank]
+graph TB
+    A[MR Received] --> B[FastAPI: Clone Repo]
+    B --> C[FastAPI: Run MEMORY_BANK Agent]
+    C --> D{memory-bank/ exists?}
+    
+    D -->|Yes| E[CLI: Analyze MR Changes]
+    E --> F[CLI: WRITE Updated Files]
+    F --> G[FastAPI: Detect Changes]
+    G --> H[FastAPI: git commit + push]
+    
+    D -->|No| I[CLI: Analyze Project]
+    I --> J[CLI: CREATE Memory Bank]
+    J --> G
 ```
 
-**Commit Details**:
-- Files: Only `memory-bank/*` files
-- Message: `docs: Update Memory Bank for MR !{mr_iid} [skip ci]`
-- Tag: `[skip ci]` to avoid triggering CI pipeline
-- Push: To MR source branch (developer can review and merge)
+**Workflow Details**:
+1. **CLI Agent** (Cline/Qwen):
+   - Analyzes MR changes
+   - WRITES updated Memory Bank files
+   - Returns JSON with `files_modified`
+
+2. **FastAPI**:
+   - Detects changes via `git status`
+   - Stages: `git add memory-bank/`
+   - Commits: `docs: Update Memory Bank for MR !{mr_iid} [skip ci]`
+   - Pushes: To MR source branch
+   
+**Important**: CLI agents don't have Git access - they only analyze and write files. FastAPI handles all Git operations (commit, push).
 
 ### Configuration
 

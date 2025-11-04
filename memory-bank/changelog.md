@@ -134,3 +134,25 @@ Changes to the Memory Bank documentation.
 - Recommended to run MEMORY_BANK on every MR (not just initialization)
 - Agent now proactively maintains project context
 
+## 2025-11-04 - Fixed Memory Bank Architecture
+
+### Fixed
+- **MEMORY_BANK prompts aligned with CLI/FastAPI separation**:
+  - Removed Git operations (commit, push) from CLI prompts
+  - CLI now only WRITES updated content to Memory Bank files
+  - FastAPI handles all Git operations (add, commit, push)
+  - Follows existing pattern: CLI = analyze + write, FastAPI = Git + GitLab
+
+### Changed
+- `prompts/cline/memory_bank.md`: Section 2.5 - WRITE files (not commit)
+- `prompts/qwen/memory_bank.md`: Section 2.5 - WRITE files (not commit)
+- `docs/NEW_REVIEW_TYPES.md`: Updated workflow to show CLI/FastAPI split
+- `memory-bank/activeContext.md`: Documented correct architecture
+
+### Technical Details
+- CLI agents don't have Git credentials or access
+- CLI uses `git diff` for read-only analysis
+- CLI writes to files: `cat > memory-bank/activeContext.md`
+- FastAPI detects changes and commits them
+- Consistent with DOCUMENTATION and UNIT_TEST_COVERAGE agents
+

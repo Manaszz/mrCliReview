@@ -179,7 +179,9 @@ The system is in **active development** with core functionality implemented:
   1. **Update** (PRIMARY): Analyzes MR changes and updates Memory Bank
   2. **Validate** (rare): Checks structure completeness
   3. **Initialize**: Creates new Memory Bank from scratch
-- Agent commits updates back to MR branch with `[skip ci]` tag
+- **Architecture** (follows CLI/FastAPI separation):
+  - CLI Agent: Analyzes MR, WRITES updated content to files
+  - FastAPI: Detects changes, commits with `[skip ci]`, pushes to MR branch
 - Documented in `docs/NEW_REVIEW_TYPES.md`
 
 ### Decision: Unit Test Coverage Automation
@@ -229,6 +231,13 @@ The system is in **active development** with core functionality implemented:
 - **Parallel Execution**: Execute multiple review types in parallel (within agent capacity)
 - **Timeout Handling**: 5-minute timeout per review type
 - **Output Parsing**: Robust parsing with fallback on malformed output
+
+### Git Commit Policy
+
+- **NEVER commit without explicit user request**
+- User must explicitly say: "commit", "закоммить", "commit and push", or similar
+- After making changes: show what changed and WAIT for user decision
+- This rule applies to ALL changes, including documentation updates
 
 ## Learnings and Project Insights
 

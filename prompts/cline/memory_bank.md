@@ -219,36 +219,62 @@ recommendations:
   - "Update systemPatterns.md with security best practices"
 ```
 
-### 2.5 Commit Memory Bank Updates
+### 2.5 Write Updated Memory Bank Files
 
-After updating Memory Bank files, **commit changes back to the MR branch**:
+**IMPORTANT**: You must WRITE the updated content directly to Memory Bank files. FastAPI will handle commit and push.
+
+For each file you updated, write the changes:
 
 ```bash
 cd {repo_path}
 
-# Stage Memory Bank changes
-git add memory-bank/
+# Write updated content to files
+# Example for activeContext.md:
+cat > memory-bank/activeContext.md << 'EOF'
+[... full updated content ...]
+EOF
 
-# Create descriptive commit message
-git commit -m "docs: Update Memory Bank for MR #{mr_iid}
+# Example for changelog.md:
+cat >> memory-bank/changelog.md << 'EOF'
 
-- Updated activeContext.md with recent changes
-- Updated systemPatterns.md with new patterns
-- Updated techContext.md with new dependencies
-- Updated progress.md with completed features
-- Updated changelog.md with MR entry
+## [Unreleased]
 
-[skip ci]"
-
-# Push changes to MR branch
-git push origin HEAD
+### Added (MR #{mr_iid})
+- [New features from this MR]
+...
+EOF
 ```
 
-**Important Notes**:
-- Use `[skip ci]` tag to avoid triggering CI pipeline
-- Commit only Memory Bank files, not other code changes
-- Use descriptive commit message referencing MR number
-- Push to the MR's source branch (current HEAD)
+**Critical Requirements**:
+1. **WRITE to files**, don't just suggest changes
+2. Write COMPLETE file content (not diffs)
+3. Preserve existing structure and formatting
+4. Only modify Memory Bank files (`memory-bank/*.md`)
+5. Don't touch any code files
+
+**Return in JSON**:
+```json
+{
+  "files_modified": [
+    {
+      "file": "memory-bank/activeContext.md",
+      "action": "updated",
+      "summary": "Added recent changes for MR #{mr_iid}"
+    },
+    {
+      "file": "memory-bank/changelog.md",
+      "action": "updated",
+      "summary": "Added MR entry to unreleased section"
+    }
+  ]
+}
+```
+
+**What FastAPI will do after you finish**:
+- Detect modified files in `memory-bank/`
+- Stage changes: `git add memory-bank/`
+- Commit: `git commit -m "docs: Update Memory Bank for MR #{mr_iid} [skip ci]"`
+- Push to MR branch: `git push origin HEAD`
 
 ---
 
