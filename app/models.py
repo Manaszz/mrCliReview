@@ -32,6 +32,8 @@ class ReviewType(str, Enum):
     TRANSACTION_MANAGEMENT = "TRANSACTION_MANAGEMENT"
     CONCURRENCY = "CONCURRENCY"
     DATABASE_OPTIMIZATION = "DATABASE_OPTIMIZATION"
+    UNIT_TEST_COVERAGE = "UNIT_TEST_COVERAGE"  # Check unit test coverage and generate missing tests
+    MEMORY_BANK = "MEMORY_BANK"  # Initialize or validate project memory bank
     ALL = "ALL"  # Execute all review types
 
 

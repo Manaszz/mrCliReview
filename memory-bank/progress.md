@@ -17,10 +17,12 @@
    - Parallel execution with semaphore
 
 3. **Review Types**
-   - 11 review types implemented
+   - 13 review types implemented
    - ERROR_DETECTION, BEST_PRACTICES, REFACTORING, SECURITY_AUDIT
    - DOCUMENTATION, PERFORMANCE, ARCHITECTURE
    - TRANSACTION_MANAGEMENT, CONCURRENCY, DATABASE_OPTIMIZATION
+   - **UNIT_TEST_COVERAGE** (NEW) - Automated test coverage analysis and generation
+   - **MEMORY_BANK** (NEW) - Project Memory Bank initialization and validation
    - ALL (expands to all types)
 
 4. **Git Repository Management**
@@ -49,10 +51,11 @@
    - Default rules (`rules/java-spring-boot/`)
 
 8. **Prompts System**
-   - 13 prompt templates
+   - 18 prompt templates (added unit test coverage and memory bank)
    - Agent-specific prompts (Cline/Qwen)
    - Additional prompts for review types
    - TODO agent prompts
+   - System prompt with Memory Bank integration
 
 ### Deployment ✅
 
@@ -163,10 +166,10 @@
 
 ### Completion Status
 
-- **Core Functionality**: 90% complete
+- **Core Functionality**: 95% complete (added new review types)
 - **Deployment**: 100% complete
 - **Documentation**: 95% complete
-- **Testing**: 40% complete
+- **Testing**: 40% complete (needs testing for new features)
 - **Phase 2 Features**: 10% complete (stubs only)
 
 ## Known Issues
@@ -215,6 +218,11 @@
 | 2025-11 | Remove `changed_files` parameter | CLI agents detect changes via git diff | ✅ Implemented |
 | 2025-11 | Clone entire MR source branch | CLI agents require full context | ✅ Implemented |
 | 2025-11 | Separate refactoring MRs for significant changes | Give developers choice | ✅ Implemented |
+| 2025-11-04 | Fix/refactor MRs target source_branch | Allow developer to accept in their branch | ✅ Implemented |
+| 2025-11-04 | Add concurrent review prevention | Prevent conflicts from duplicate reviews | ✅ Implemented |
+| 2025-11-04 | Add UNIT_TEST_COVERAGE review type | Automate test generation | ✅ Implemented |
+| 2025-11-04 | Add MEMORY_BANK review type | Enable project context awareness | ✅ Implemented |
+| 2025-11-04 | Integrate Memory Bank in system prompt | Improve review quality with context | ✅ Implemented |
 
 ### Changelog Reference
 
@@ -225,19 +233,26 @@ See `changelog.md` (to be created) for detailed change history.
 1. **Memory Bank Completion** (Current)
    - ✅ Initialize Memory Bank structure
    - ✅ Document project context
-   - ⏳ Review and refine documentation
+   - ✅ Add new review types (UNIT_TEST_COVERAGE, MEMORY_BANK)
+   - ✅ Update documentation
 
-2. **Testing Enhancement**
+2. **New Features Testing** (Next)
+   - Test UNIT_TEST_COVERAGE with real Java projects
+   - Test MEMORY_BANK initialization and validation
+   - Validate generated test code quality
+   - Validate Memory Bank content accuracy
+
+3. **Testing Enhancement**
    - Integration tests
    - Performance tests
    - Security tests
 
-3. **Production Readiness**
+4. **Production Readiness**
    - Security audit
    - Performance optimization
    - Monitoring setup
 
-4. **Phase 2 Implementation**
+5. **Phase 2 Implementation**
    - JIRA Task Matcher
    - Changelog Generator
    - Library Updater

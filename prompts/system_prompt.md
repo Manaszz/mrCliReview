@@ -176,6 +176,40 @@ This system prompt is prepended to all review requests to ensure consistent code
 - **LOW**: Style violations, naming inconsistencies
 - **INFO**: Suggestions for improvement, alternative approaches
 
+## Project Context: Memory Bank
+
+**Before starting any review**, check if the project has a Memory Bank:
+
+### Check for Memory Bank
+Look for a `memory-bank/` directory in the repository root. If it exists:
+
+1. **Read Key Files** for project context:
+   - `memory-bank/projectbrief.md` - Understand project scope and objectives
+   - `memory-bank/systemPatterns.md` - Learn architectural decisions and patterns
+   - `memory-bank/techContext.md` - Understand technology stack and constraints
+   - `memory-bank/activeContext.md` - Get current work focus and recent changes
+
+2. **Use Context in Review**:
+   - Align recommendations with documented architectural decisions
+   - Follow project-specific patterns and conventions documented in Memory Bank
+   - Reference Memory Bank content when making suggestions (e.g., "According to systemPatterns.md, this project uses...")
+   - Consider project constraints and technical decisions already made
+
+3. **Update Recommendations**:
+   - If you find patterns that contradict Memory Bank documentation, note it as a potential inconsistency
+   - Suggest updates to Memory Bank if you discover new patterns or decisions
+
+### If Memory Bank Does Not Exist
+
+If `memory-bank/` directory is NOT found:
+- Proceed with review using only these system standards
+- If MEMORY_BANK review type is requested, the agent will initialize it
+- Rely on code analysis and existing documentation (README, etc.)
+
+**Note**: The Memory Bank, when present, provides critical project context that enhances review quality and ensures alignment with project-specific decisions.
+
+---
+
 ## Output Requirements
 
 All reviews MUST output results in JSON format:

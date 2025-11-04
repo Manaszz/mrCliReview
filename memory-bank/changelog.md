@@ -50,3 +50,60 @@ Changes to the Memory Bank documentation.
 - Memory usage: Minimal (single string cached)
 - Restart required: Yes (to reload system prompt changes)
 
+## 2025-11-04 - New Review Types + Memory Bank Integration
+
+### Added
+- **UNIT_TEST_COVERAGE Review Type**: Automated test coverage analysis
+  - Detects changed files and corresponding test files
+  - Generates missing unit tests following project conventions
+  - Uses JUnit5, Mockito, TestContainers
+  - Extends project's `*Base` classes (JupiterBase, JupiterArtemisBase, etc.)
+  - Prompts: `prompts/cline/unit_test_coverage.md`, `prompts/qwen/unit_test_coverage.md`
+
+- **MEMORY_BANK Review Type**: Project Memory Bank management
+  - Validates existing Memory Bank structure (6 core files)
+  - Initializes new Memory Bank by analyzing project
+  - Based on Cursor's Memory Bank v1.2 Final methodology
+  - Prompts: `prompts/cline/memory_bank.md`, `prompts/qwen/memory_bank.md`
+
+- **Memory Bank Integration in System Prompt**:
+  - Agents now check for `memory-bank/` directory before review
+  - Auto-loads context from: projectbrief.md, systemPatterns.md, techContext.md, activeContext.md
+  - Aligns recommendations with documented architectural decisions
+  - References Memory Bank in suggestions
+
+- **Documentation**: `docs/NEW_REVIEW_TYPES.md`
+  - Comprehensive guide for both new review types
+  - Usage examples and configuration
+  - Output format specifications
+
+### Changed
+- **MR Creation Target Branch**: Fix/refactor MRs now target `source_branch`
+  - Previous: `fix branch -> target_branch`
+  - New: `fix branch -> source_branch -> target_branch`
+  - Allows developers to review fixes in their feature branch first
+  - Updated `app/services/mr_creator.py` with clarified comments
+
+- **System Prompt Enhanced**:
+  - Added "Project Context: Memory Bank" section
+  - Instructions for checking and using Memory Bank
+  - Fallback behavior if Memory Bank doesn't exist
+
+- **Memory Bank Files Updated**:
+  - `activeContext.md`: Documented all recent changes and decisions
+  - `progress.md`: Updated completion status (95% core functionality)
+  - `changelog.md`: This file
+
+### Fixed
+- **Concurrent Review Prevention**:
+  - `GitRepositoryManager` tracks active reviews via `_active_reviews` set
+  - Returns error if MR review already in progress
+  - Proper cleanup removes tracking on repository cleanup
+  - Prevents repository clone conflicts
+
+### Technical Details
+- Total Review Types: 13 (was 11)
+- Total Prompts: 18 (was 14)
+- Core Functionality Completion: 95% (was 90%)
+- New files: 5 (4 prompts + 1 documentation)
+

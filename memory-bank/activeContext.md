@@ -2,10 +2,42 @@
 
 ## Current Work Focus
 
-### Recent Changes
+### Recent Changes (2025-11-04)
 
-Based on git status, recent modifications include:
+Latest modifications:
 
+#### New Features
+- **Added**: Two new ReviewType enums:
+  - `UNIT_TEST_COVERAGE` (обязательный) - Automated test coverage analysis and generation
+  - `MEMORY_BANK` (опциональный) - Project Memory Bank initialization and validation
+  
+- **Created**: Prompt templates for new review types:
+  - `prompts/cline/unit_test_coverage.md`
+  - `prompts/cline/memory_bank.md`
+  - `prompts/qwen/unit_test_coverage.md`
+  - `prompts/qwen/memory_bank.md`
+
+- **Enhanced**: System prompt (`prompts/system_prompt.md`):
+  - Added Memory Bank integration instructions
+  - Agents now check for `memory-bank/` directory
+  - Automatic context loading from Memory Bank files
+
+- **Improved**: MR creation logic (`app/services/mr_creator.py`):
+  - Clarified comments: fix/refactor MRs target source_branch (not target_branch)
+  - Flow: `fix branch -> source_branch -> target_branch`
+  - Allows developers to accept fixes before merging to target
+
+#### Bug Fixes & Improvements
+- **Fixed**: Active review tracking (`app/services/git_repository_manager.py`):
+  - Added concurrency control to prevent duplicate reviews
+  - Now returns error if MR review already in progress
+  - Proper cleanup of review tracking on repository cleanup
+
+#### Documentation
+- **New**: `docs/NEW_REVIEW_TYPES.md` - Comprehensive guide for new review types
+- **Updated**: Memory Bank files to reflect current state
+
+Previous changes:
 - **Modified**: `app/api/routes.py` - API route updates
 - **Modified**: `app/services/git_repository_manager.py` - Git operations improvements
 - **Deleted**: `docs/CLI_GITLAB_ACCESS.md` - Documentation cleanup
@@ -20,24 +52,26 @@ The system is in **active development** with core functionality implemented:
 
 - ✅ FastAPI REST API with 3 endpoints
 - ✅ Dual CLI agent support (Cline/Qwen Code)
-- ✅ 11 review types implemented
-- ✅ Git repository management
+- ✅ 13 review types implemented (added UNIT_TEST_COVERAGE, MEMORY_BANK)
+- ✅ Git repository management with concurrency control
 - ✅ GitLab integration (minimal API usage)
 - ✅ Smart refactoring classification
+- ✅ System prompt with Memory Bank integration
 - ✅ Docker and Kubernetes deployment configs
 - ✅ Comprehensive documentation (Russian)
 
 ### Next Steps
 
-1. **Memory Bank Initialization** (Current)
-   - Creating Memory Bank structure
-   - Documenting project context
-   - Establishing patterns and preferences
+1. **Testing New Review Types** (Next)
+   - Test UNIT_TEST_COVERAGE with real MRs
+   - Test MEMORY_BANK initialization
+   - Validate generated test code quality
+   - Validate Memory Bank content accuracy
 
 2. **Testing & Validation**
-   - Complete test coverage
+   - Complete test coverage for new features
    - Integration testing with GitLab
-   - Performance testing
+   - Performance testing with new review types
 
 3. **Production Readiness**
    - Security audit
@@ -91,6 +125,75 @@ The system is in **active development** with core functionality implemented:
 **Implementation**:
 - Documented in `docs/CLI_GIT_DIFFS.md`
 - GitRepositoryManager clones with target branch reference
+
+### Decision: Fix/Refactor MR Target Branch
+
+**Context**: Where should fix and refactor MRs be merged?
+
+**Decision**: Target the **original MR source branch**, NOT the target branch.
+
+**Rationale**:
+- Developers can review and accept fixes in their feature branch
+- Then merge the complete, fixed feature branch to target (e.g., develop)
+- Flow: `fix/mr-X-ai-fixes` → `feature/developer-branch` → `develop`
+
+**Implementation**:
+- `MRCreator.create_fixes_mr()` sets `target_branch=source_branch`
+- `MRCreator.create_refactoring_mr()` sets `target_branch=source_branch`
+- Documented in code comments
+
+### Decision: Concurrent Review Prevention
+
+**Context**: Multiple review requests for the same MR can cause conflicts.
+
+**Decision**: Block concurrent reviews of the same MR.
+
+**Rationale**:
+- Prevents repository clone conflicts
+- Avoids duplicate work
+- Ensures clean review state
+
+**Implementation**:
+- `GitRepositoryManager` tracks active reviews via `_active_reviews` set
+- `_review_lock` ensures atomic check-and-add operations
+- Returns error if review already in progress
+- Cleanup removes from tracking set
+
+### Decision: Memory Bank Integration
+
+**Context**: How to provide project context to CLI agents?
+
+**Decision**: Use Cursor's Memory Bank (v1.2 Final) methodology with automatic detection.
+
+**Rationale**:
+- Structured knowledge base improves review quality
+- Agents can understand project-specific patterns
+- Preserves architectural decisions and rationale
+- Living documentation that evolves with project
+
+**Implementation**:
+- System prompt instructs agents to check for `memory-bank/` directory
+- If exists, agents read key files for context
+- MEMORY_BANK review type can initialize or validate
+- Documented in `docs/NEW_REVIEW_TYPES.md`
+
+### Decision: Unit Test Coverage Automation
+
+**Context**: Many MRs lack adequate test coverage.
+
+**Decision**: Add mandatory UNIT_TEST_COVERAGE review type.
+
+**Rationale**:
+- Automated test generation improves code quality
+- Reduces manual test writing burden
+- Ensures consistent test patterns
+- Follows project conventions (JUnit5, Mockito, TestContainers)
+
+**Implementation**:
+- New ReviewType: `UNIT_TEST_COVERAGE`
+- Generates complete, ready-to-use test code
+- Uses project's `*Base` test classes (JupiterBase, etc.)
+- Documented in `docs/NEW_REVIEW_TYPES.md`
 
 ## Important Patterns and Preferences
 

@@ -102,14 +102,19 @@ class MRCreator:
         
         Args:
             project_id: GitLab project ID
-            source_branch: Original MR source branch
-            target_branch: Original MR target branch
+            source_branch: Original MR source branch (used as target for fix MR)
+            target_branch: Original MR target branch (not used - for reference only)
             mr_iid: Original MR IID
             issues: List of issues to fix
             minor_refactoring: Minor refactoring suggestions (optional)
             
         Returns:
             MR creation result
+            
+        Note:
+            Fix MR targets the ORIGINAL MR source branch (not target_branch).
+            This allows developer to accept fixes into their branch before merging to target.
+            Flow: fix branch -> source_branch -> target_branch
         """
         try:
             # Filter auto-fixable critical and high issues
@@ -133,7 +138,7 @@ class MRCreator:
             mr_data = await self.gitlab.create_merge_request(
                 project_id=project_id,
                 source_branch=fix_branch,
-                target_branch=source_branch,  # Target is original MR branch
+                target_branch=source_branch,  # ВАЖНО: Target is original MR source branch, NOT target_branch
                 title=title,
                 description=description,
                 labels=["ai-review", "fixes"]
@@ -163,13 +168,18 @@ class MRCreator:
         
         Args:
             project_id: GitLab project ID
-            source_branch: Original MR source branch
-            target_branch: Original MR target branch
+            source_branch: Original MR source branch (used as target for refactor MR)
+            target_branch: Original MR target branch (not used - for reference only)
             mr_iid: Original MR IID
             refactorings: Refactoring suggestions
             
         Returns:
             MR creation result
+            
+        Note:
+            Refactor MR targets the ORIGINAL MR source branch (not target_branch).
+            This allows developer to accept refactoring into their branch before merging to target.
+            Flow: refactor branch -> source_branch -> target_branch
         """
         try:
             refactor_branch = f"refactor/mr-{mr_iid}-ai-suggestions"
@@ -182,7 +192,7 @@ class MRCreator:
             mr_data = await self.gitlab.create_merge_request(
                 project_id=project_id,
                 source_branch=refactor_branch,
-                target_branch=source_branch,  # Target is original MR branch
+                target_branch=source_branch,  # ВАЖНО: Target is original MR source branch, NOT target_branch
                 title=title,
                 description=description,
                 labels=["ai-review", "refactoring"]
