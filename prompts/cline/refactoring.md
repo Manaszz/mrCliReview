@@ -8,9 +8,15 @@ Analyze Java Spring Boot code changes and suggest refactoring opportunities to i
 
 - **Repository Path**: {repo_path}
 - **Language**: {language}
-- **Changed Files**: {changed_files}
 - **Custom Rules**: {custom_rules}
 - **JIRA Context**: {jira_context}
+
+## Instructions
+
+**IMPORTANT**: Use `git diff` to automatically determine which files have changed.
+Analyze only the changed files between the current branch and the target branch.
+
+Command to detect changes: `git diff --name-only origin/main` (or use appropriate target branch)
 
 ## Analysis Scope
 

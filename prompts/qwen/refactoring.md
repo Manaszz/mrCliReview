@@ -8,7 +8,6 @@ Suggest refactoring opportunities to improve code maintainability and readabilit
 
 - **Repository Path**: {repo_path}
 - **Language**: {language}
-- **Changed Files**: {changed_files}
 - **Custom Rules**: {custom_rules}
 
 ## Focus Areas

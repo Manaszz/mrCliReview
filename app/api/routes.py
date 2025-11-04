@@ -89,12 +89,13 @@ async def review_merge_request(
         project_data = await gitlab_service.get_project(request.project_id)
         clone_url = gitlab_service.get_clone_url(project_data)
         
-        # Clone repository
+        # Clone repository with target branch for diff
         repo_path = await git_manager.clone_repository(
             clone_url=clone_url,
             branch=mr_data['source_branch'],
             project_id=request.project_id,
-            mr_iid=request.merge_request_iid
+            mr_iid=request.merge_request_iid,
+            target_branch=mr_data['target_branch']  # For git diff comparison
         )
         
         logger.info(f"Repository cloned to {repo_path}")

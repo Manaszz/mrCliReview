@@ -71,7 +71,8 @@ class ReviewService:
             ReviewResult with all findings
             
         Note:
-            Changed files are automatically determined by CLI agents via git diff
+            Changed files are automatically determined by CLI agents via git diff.
+            No need to pass changed_files list - CLI detects them automatically.
         """
         start_time = time.time()
         
@@ -102,7 +103,6 @@ class ReviewService:
         raw_results = await cli_manager.execute_parallel_reviews(
             review_types=review_types,
             repo_path=repo_path,
-            changed_files=[],  # CLI will determine this automatically
             prompts=prompts,
             custom_rules=combined_rules,
             jira_context=request.jira_context
@@ -221,8 +221,9 @@ Perform {review_type.value.replace('_', ' ').lower()} analysis on the provided c
 
 ## Context
 - Repository Path: {{repo_path}}
-- Changed Files: {{changed_files}}
 - Language: {{language}}
+
+Note: Changed files will be automatically determined by CLI via git diff
 
 ## Instructions
 1. Analyze the changed files

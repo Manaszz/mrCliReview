@@ -8,9 +8,15 @@ Analyze the provided Java Spring Boot code changes and identify potential bugs, 
 
 - **Repository Path**: {repo_path}
 - **Language**: {language}
-- **Changed Files**: {changed_files}
 - **Custom Rules**: {custom_rules}
 - **JIRA Context**: {jira_context}
+
+## Instructions
+
+**IMPORTANT**: Use `git diff` to automatically determine which files have changed.
+Analyze only the changed files between the current branch and the target branch.
+
+Command to detect changes: `git diff --name-only origin/develop` (or use appropriate target branch)
 
 ## Analysis Scope
 
@@ -278,11 +284,11 @@ Provide results in JSON format:
 - **LOW**: Minor issues that are unlikely to cause problems but should be addressed
 - **INFO**: Suggestions for improvement without immediate risk
 
-## Instructions
+## Review Process
 
 1. Clone the repository to {repo_path}
 2. Checkout the merge request branch
-3. Identify all changed files from {changed_files}
+3. Identify all changed files using git diff
 4. Analyze each file according to the rules above
 5. Consider {custom_rules} if provided
 6. Use {jira_context} to understand intended behavior

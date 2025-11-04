@@ -31,7 +31,6 @@ class ClineCLIManager(BaseCLIManager):
         self,
         review_type: ReviewType,
         repo_path: str,
-        changed_files: List[str],
         prompt_content: str,
         custom_rules: Optional[str] = None,
         jira_context: Optional[str] = None
@@ -42,19 +41,20 @@ class ClineCLIManager(BaseCLIManager):
         Args:
             review_type: Type of review
             repo_path: Path to cloned repository
-            changed_files: List of changed files
             prompt_content: Prompt with instructions
             custom_rules: Custom rules (optional)
             jira_context: JIRA context (optional)
             
         Returns:
             Review results as dict
+            
+        Note:
+            Changed files are automatically determined by CLI via git diff
         """
         # Substitute variables in prompt
         processed_prompt = self._substitute_prompt_variables(
             prompt_template=prompt_content,
             repo_path=repo_path,
-            changed_files=changed_files,
             language="java",  # TODO: Make this configurable
             custom_rules=custom_rules,
             jira_context=jira_context
@@ -71,12 +71,12 @@ class ClineCLIManager(BaseCLIManager):
         
         try:
             # Build Cline CLI command
+            # Note: CLI will automatically detect changed files via git diff
             cmd = [
                 self.cli_command,
                 'review',
                 '--repo-path', repo_path,
                 '--prompt', prompt_path,
-                '--files', ','.join(changed_files),
                 '--output', output_path,
                 '--format', 'json',
                 '--model-url', self.model_api_url,

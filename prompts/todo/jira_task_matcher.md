@@ -1,5 +1,14 @@
 # JIRA Task Matcher Prompt (TODO)
 
+
+
+## Instructions
+
+**IMPORTANT**: Use `git diff` to automatically determine which files have changed.
+Analyze only the changed files between the current branch and the target branch.
+
+Command to detect changes: `git diff --name-only origin/main` (or use appropriate target branch)
+
 ## Objective
 
 Verify that code changes fully implement the requirements from the associated JIRA task.
@@ -9,7 +18,6 @@ Verify that code changes fully implement the requirements from the associated JI
 - **Repository Path**: {repo_path}
 - **JIRA Task ID**: {jira_task_id}
 - **JIRA Description**: {jira_context}
-- **Changed Files**: {changed_files}
 - **Custom Rules**: {custom_rules}
 
 ## Analysis Approach

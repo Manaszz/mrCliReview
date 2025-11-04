@@ -8,7 +8,6 @@ Analyze Java Spring Boot code changes to identify bugs, potential crashes, and l
 
 - **Repository Path**: {repo_path}
 - **Language**: {language}
-- **Changed Files**: {changed_files}
 - **Custom Rules**: {custom_rules}
 
 ## Focus Areas

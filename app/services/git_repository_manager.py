@@ -9,7 +9,7 @@ import os
 import shutil
 import asyncio
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Set
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,35 +28,59 @@ class GitRepositoryManager:
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
         
+        # Track active reviews to prevent concurrent reviews of same MR
+        self._active_reviews: Set[str] = set()
+        self._review_lock = asyncio.Lock()
+        
     async def clone_repository(
         self,
         clone_url: str,
         branch: str,
         project_id: int,
-        mr_iid: int
+        mr_iid: int,
+        target_branch: str = "develop"
     ) -> str:
         """
-        Clone repository and checkout MR branch
+        Clone repository and checkout MR branch with target branch for comparison
         
         Args:
             clone_url: Git clone URL with authentication
-            branch: Branch to checkout
+            branch: Source branch to checkout (MR source branch)
             project_id: Project ID (for directory naming)
             mr_iid: MR IID (for directory naming)
+            target_branch: Target branch for diff comparison (usually main/master)
             
         Returns:
             Path to cloned repository
+            
+        Raises:
+            RuntimeError: If review for this MR is already in progress
         """
+        # Check if review is already in progress
+        review_key = f"{project_id}-{mr_iid}"
+        
+        async with self._review_lock:
+            if review_key in self._active_reviews:
+                logger.warning(f"Review already in progress for project {project_id}, MR !{mr_iid}")
+                raise RuntimeError(
+                    f"Review for project {project_id}, MR !{mr_iid} is already in progress. "
+                    f"Please wait for the current review to complete."
+                )
+            
+            # Register this review as active
+            self._active_reviews.add(review_key)
+            logger.info(f"Registered active review: {review_key}")
+        
         # Create unique directory for this MR
         repo_dir = self.work_dir / f"project-{project_id}-mr-{mr_iid}"
         
-        # Clean up if exists
+        # Clean up if exists (from previous failed review)
         if repo_dir.exists():
             logger.info(f"Removing existing repository at {repo_dir}")
             shutil.rmtree(repo_dir)
         
-        # Clone repository
-        logger.info(f"Cloning repository to {repo_dir}")
+        # Clone source branch
+        logger.info(f"Cloning {branch} to {repo_dir}")
         cmd = ['git', 'clone', '--branch', branch, '--single-branch', clone_url, str(repo_dir)]
         
         process = await asyncio.create_subprocess_exec(
@@ -72,7 +96,30 @@ class GitRepositoryManager:
             logger.error(f"Git clone failed: {error_msg}")
             raise RuntimeError(f"Failed to clone repository: {error_msg}")
         
-        logger.info(f"Successfully cloned repository to {repo_dir}")
+        logger.info(f"Successfully cloned {branch}")
+        
+        # Fetch target branch for diff comparison
+        logger.info(f"Fetching {target_branch} for comparison")
+        cmd = [
+            'git', 'fetch', 'origin',
+            f'{target_branch}:refs/remotes/origin/{target_branch}'
+        ]
+        
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(repo_dir)
+        )
+        
+        stdout, stderr = await process.communicate()
+        
+        if process.returncode != 0:
+            # Not critical - can work without target branch in some cases
+            logger.warning(f"Failed to fetch {target_branch}: {stderr.decode()}")
+        else:
+            logger.info(f"Successfully fetched {target_branch} for comparison")
+        
         return str(repo_dir)
     
     async def get_changed_files(
@@ -265,11 +312,29 @@ class GitRepositoryManager:
     
     async def cleanup_repository(self, repo_path: str) -> None:
         """
-        Clean up cloned repository
+        Clean up cloned repository and release review lock
         
         Args:
             repo_path: Path to repository
         """
+        # Extract project_id and mr_iid from repo_path
+        # Format: /tmp/review/project-{project_id}-mr-{mr_iid}
+        try:
+            path_parts = Path(repo_path).name.split('-')
+            if len(path_parts) >= 4 and path_parts[0] == 'project' and path_parts[2] == 'mr':
+                project_id = path_parts[1]
+                mr_iid = path_parts[3]
+                review_key = f"{project_id}-{mr_iid}"
+                
+                # Remove from active reviews
+                async with self._review_lock:
+                    if review_key in self._active_reviews:
+                        self._active_reviews.remove(review_key)
+                        logger.info(f"Released active review: {review_key}")
+        except Exception as e:
+            logger.warning(f"Failed to extract review key from path {repo_path}: {str(e)}")
+        
+        # Clean up directory
         if os.path.exists(repo_path):
             try:
                 shutil.rmtree(repo_path)

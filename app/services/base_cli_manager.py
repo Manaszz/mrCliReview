@@ -16,13 +16,17 @@ logger = logging.getLogger(__name__)
 class BaseCLIManager(ABC):
     """Abstract base class for CLI agent managers"""
     
+    # Class-level cache for system prompt
+    _system_prompt_cache: Optional[str] = None
+    
     def __init__(
         self,
         model_api_url: str,
         model_name: str,
         api_key: str,
         parallel_tasks: int,
-        timeout_seconds: int = 300
+        timeout_seconds: int = 300,
+        system_prompt_path: str = "prompts/system_prompt.md"
     ):
         """
         Initialize CLI manager
@@ -33,12 +37,18 @@ class BaseCLIManager(ABC):
             api_key: API key for authentication
             parallel_tasks: Maximum number of parallel review tasks
             timeout_seconds: Timeout for each review task
+            system_prompt_path: Path to system prompt file (loaded once, cached)
         """
         self.model_api_url = model_api_url
         self.model_name = model_name
         self.api_key = api_key
         self.parallel_tasks = parallel_tasks
         self.timeout_seconds = timeout_seconds
+        self.system_prompt_path = system_prompt_path
+        
+        # Load system prompt once (singleton pattern)
+        if BaseCLIManager._system_prompt_cache is None:
+            BaseCLIManager._system_prompt_cache = self._load_system_prompt()
         
     @property
     @abstractmethod
@@ -57,7 +67,6 @@ class BaseCLIManager(ABC):
         self,
         review_type: ReviewType,
         repo_path: str,
-        changed_files: List[str],
         prompt_content: str,
         custom_rules: Optional[str] = None,
         jira_context: Optional[str] = None
@@ -68,13 +77,15 @@ class BaseCLIManager(ABC):
         Args:
             review_type: Type of review to perform
             repo_path: Local path to cloned repository
-            changed_files: List of changed file paths
             prompt_content: Processed prompt content
             custom_rules: Custom rules content (optional)
             jira_context: JIRA task context (optional)
             
         Returns:
             Dict containing review results in JSON format
+            
+        Note:
+            Changed files are automatically determined by CLI via git diff
         """
         pass
     
@@ -82,7 +93,6 @@ class BaseCLIManager(ABC):
         self,
         review_types: List[ReviewType],
         repo_path: str,
-        changed_files: List[str],
         prompts: Dict[ReviewType, str],
         custom_rules: Optional[str] = None,
         jira_context: Optional[str] = None
@@ -93,13 +103,15 @@ class BaseCLIManager(ABC):
         Args:
             review_types: List of review types to perform
             repo_path: Local path to cloned repository
-            changed_files: List of changed file paths
             prompts: Mapping of review type to prompt content
             custom_rules: Custom rules content (optional)
             jira_context: JIRA task context (optional)
             
         Returns:
             List of review results
+            
+        Note:
+            Changed files are automatically determined by CLI via git diff
         """
         semaphore = asyncio.Semaphore(self.parallel_tasks)
         
@@ -110,7 +122,6 @@ class BaseCLIManager(ABC):
                     result = await self.execute_review(
                         review_type=review_type,
                         repo_path=repo_path,
-                        changed_files=changed_files,
                         prompt_content=prompts[review_type],
                         custom_rules=custom_rules,
                         jira_context=jira_context
@@ -201,34 +212,57 @@ class BaseCLIManager(ABC):
             logger.error(f"Error testing model API connection: {str(e)}")
             return False
     
+    def _load_system_prompt(self) -> str:
+        """
+        Load system prompt from file (once, cached at class level)
+        
+        Returns:
+            System prompt content or empty string if file not found
+        """
+        import os
+        from pathlib import Path
+        
+        try:
+            system_prompt_file = Path(self.system_prompt_path)
+            if system_prompt_file.exists():
+                with open(system_prompt_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                logger.info(f"Loaded system prompt from {self.system_prompt_path}")
+                return content
+            else:
+                logger.warning(f"System prompt file not found: {self.system_prompt_path}")
+                return ""
+        except Exception as e:
+            logger.error(f"Failed to load system prompt: {str(e)}")
+            return ""
+    
     def _substitute_prompt_variables(
         self,
         prompt_template: str,
         repo_path: str,
-        changed_files: List[str],
         language: str,
         custom_rules: Optional[str] = None,
         jira_context: Optional[str] = None
     ) -> str:
         """
-        Substitute variables in prompt template
+        Substitute variables in prompt template and prepend system prompt
         
         Args:
             prompt_template: Prompt template with {variables}
             repo_path: Repository path
-            changed_files: Changed files list
             language: Programming language
             custom_rules: Custom rules content
             jira_context: JIRA context
             
         Returns:
-            Prompt with substituted variables
+            Prompt with substituted variables and system prompt prepended
+            
+        Note:
+            Changed files are determined by CLI via git diff, not passed as parameter
+            System prompt is loaded once and cached for performance
         """
-        import json
-        
         substitutions = {
             '{repo_path}': repo_path,
-            '{changed_files}': json.dumps(changed_files, indent=2),
             '{language}': language,
             '{custom_rules}': custom_rules or "No custom rules provided",
             '{jira_context}': jira_context or "No JIRA context provided"
@@ -237,6 +271,10 @@ class BaseCLIManager(ABC):
         result = prompt_template
         for placeholder, value in substitutions.items():
             result = result.replace(placeholder, value)
+        
+        # Prepend system prompt (cached, loaded once)
+        if BaseCLIManager._system_prompt_cache:
+            result = BaseCLIManager._system_prompt_cache + "\n\n---\n\n" + result
             
         return result
     
