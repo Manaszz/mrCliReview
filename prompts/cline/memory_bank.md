@@ -1,4 +1,4 @@
-# Memory Bank Initialization and Validation
+# Memory Bank Management: Initialize, Validate, and Update
 
 ## Context
 - **Repository Path**: {repo_path}
@@ -8,7 +8,11 @@
 
 ## Instructions
 
-Your task is to check if the project has a Memory Bank and either validate it or create a new one based on the Cursor's Memory Bank (v1.2 Final) structure.
+Your task is to manage the project's Memory Bank based on the Cursor's Memory Bank (v1.2 Final) structure. There are THREE operating modes:
+
+1. **Initialize** - Create new Memory Bank from scratch
+2. **Validate** - Verify existing Memory Bank structure
+3. **Update** - Update Memory Bank with changes from current MR (PRIMARY MODE)
 
 ### Step 1: Check for Existing Memory Bank
 
@@ -19,14 +23,240 @@ cd {repo_path}
 ls -la | grep memory-bank
 ```
 
-If `memory-bank/` exists, proceed to **Step 2: Validate Existing Memory Bank**.
-If `memory-bank/` does NOT exist, proceed to **Step 3: Initialize New Memory Bank**.
+**Decision Flow**:
+- If `memory-bank/` **EXISTS** → Proceed to **Step 2: Update Memory Bank with MR Changes**
+- If `memory-bank/` **DOES NOT EXIST** → Proceed to **Step 4: Initialize New Memory Bank**
 
 ---
 
-## Step 2: Validate Existing Memory Bank
+## Step 2: Update Memory Bank with MR Changes (PRIMARY MODE)
 
-If Memory Bank exists, verify it contains the required core files:
+**IMPORTANT**: This is the PRIMARY mode when Memory Bank exists. Update it based on changes in the current MR.
+
+### 2.1 Analyze MR Changes
+
+Use `git diff` to identify all changes:
+
+```bash
+cd {repo_path}
+# Get changed files
+git diff --name-only origin/develop
+
+# Get detailed diff
+git diff origin/develop
+
+# Get commit messages
+git log --oneline origin/develop..HEAD
+```
+
+Analyze:
+- What files were added/modified/deleted?
+- What features/functionality was added?
+- Were there architectural changes?
+- Were new technologies/libraries introduced?
+- Were new patterns or conventions established?
+- Were there bug fixes or improvements?
+
+### 2.2 Determine What to Update
+
+Based on MR analysis, identify which Memory Bank files need updates:
+
+| File | Update When |
+|------|------------|
+| **activeContext.md** | ALWAYS - Add to "Recent Changes", update "Current Focus" |
+| **systemPatterns.md** | New architectural decisions, design patterns, component changes |
+| **techContext.md** | New dependencies, technologies, tools, environment changes |
+| **progress.md** | New features completed, status updates, known issues |
+| **productContext.md** | Rarely - only if product vision or features change significantly |
+| **projectbrief.md** | Very rarely - only if project scope changes |
+| **changelog.md** | ALWAYS - Add entry for this MR |
+
+### 2.3 Update Memory Bank Files
+
+For each file that needs updating:
+
+#### activeContext.md (MANDATORY UPDATE)
+
+Add to "Recent Changes" section:
+
+```markdown
+### Recent Changes (YYYY-MM-DD)
+
+Latest modifications from MR #{mr_iid}:
+
+#### [Category: New Features / Bug Fixes / Improvements]
+- **Added/Changed/Fixed**: [Description]
+  - [Details from MR]
+  - [Files affected]
+  
+[Keep previous changes, limit to last 3-4 MRs]
+```
+
+Update "Current Focus" if needed:
+- What's currently being worked on
+- Next steps based on this MR
+
+Update "Active Decisions" if MR introduced new decisions:
+```markdown
+### Decision: [Decision Name]
+
+**Context**: [Why this decision was made in this MR]
+
+**Decision**: [What was decided]
+
+**Rationale**:
+- [Reason 1]
+- [Reason 2]
+
+**Implementation**:
+- [How it was implemented in this MR]
+- [Affected files/components]
+```
+
+#### systemPatterns.md (UPDATE IF ARCHITECTURAL CHANGES)
+
+Update if MR contains:
+- New design patterns
+- Architectural changes
+- New components or services
+- Changes to component relationships
+- New critical implementation paths
+
+Add or update sections:
+```markdown
+## Key Technical Decisions
+
+### [Decision Number]. [Decision Name]
+- **Decision**: [What was decided in this MR]
+- **Rationale**: [Why - from MR context]
+- **Impact**: [How it affects the system]
+- **MR**: #{mr_iid}
+```
+
+#### techContext.md (UPDATE IF NEW TECH/DEPENDENCIES)
+
+Update if MR contains:
+- New dependencies in pom.xml/build.gradle/package.json
+- New environment variables
+- New tools or frameworks
+- Changes to development setup
+
+Update relevant sections:
+```markdown
+### Key Dependencies
+- [New Dependency]: [Purpose] - Added in MR #{mr_iid}
+```
+
+#### progress.md (UPDATE IF FEATURES/STATUS CHANGED)
+
+Update "What Works" if new features completed:
+```markdown
+### Implemented Features
+- ✅ [Feature Name] - Completed in MR #{mr_iid}
+```
+
+Update "Known Issues" if MR fixes or introduces issues:
+```markdown
+## Known Issues
+
+1. **[Issue Name]**
+   - Severity: High/Medium/Low
+   - Impact: [Description]
+   - Status: Resolved in MR #{mr_iid} / Open
+```
+
+Update "Evolution of Decisions":
+```markdown
+| YYYY-MM-DD | [Decision] | [Rationale] | ✅ Implemented in MR #{mr_iid} |
+```
+
+#### changelog.md (MANDATORY UPDATE)
+
+ALWAYS add an entry for this MR:
+
+```markdown
+## [Unreleased]
+
+### Added (MR #{mr_iid})
+- [New features from this MR]
+
+### Changed (MR #{mr_iid})
+- [Changes to existing functionality]
+
+### Fixed (MR #{mr_iid})
+- [Bug fixes from this MR]
+```
+
+### 2.4 Output Format for Updates
+
+```yaml
+memory_bank_status: UPDATED
+mr_analyzed: {mr_iid}
+files_updated:
+  - file: activeContext.md
+    changes: "Added recent changes, updated current focus"
+  - file: systemPatterns.md
+    changes: "Documented new authentication pattern"
+  - file: techContext.md
+    changes: "Added new Redis dependency"
+  - file: progress.md
+    changes: "Marked user authentication feature as completed"
+  - file: changelog.md
+    changes: "Added MR entry to unreleased section"
+
+update_summary:
+  features_added: 
+    - "User authentication with JWT"
+  patterns_introduced:
+    - "Token-based authentication pattern"
+  dependencies_added:
+    - "spring-security: 6.2.0"
+  issues_resolved:
+    - "Fixed null pointer in user service"
+
+recommendations:
+  - "Consider adding authentication documentation to productContext.md"
+  - "Update systemPatterns.md with security best practices"
+```
+
+### 2.5 Commit Memory Bank Updates
+
+After updating Memory Bank files, **commit changes back to the MR branch**:
+
+```bash
+cd {repo_path}
+
+# Stage Memory Bank changes
+git add memory-bank/
+
+# Create descriptive commit message
+git commit -m "docs: Update Memory Bank for MR #{mr_iid}
+
+- Updated activeContext.md with recent changes
+- Updated systemPatterns.md with new patterns
+- Updated techContext.md with new dependencies
+- Updated progress.md with completed features
+- Updated changelog.md with MR entry
+
+[skip ci]"
+
+# Push changes to MR branch
+git push origin HEAD
+```
+
+**Important Notes**:
+- Use `[skip ci]` tag to avoid triggering CI pipeline
+- Commit only Memory Bank files, not other code changes
+- Use descriptive commit message referencing MR number
+- Push to the MR's source branch (current HEAD)
+
+---
+
+## Step 3: Validate Existing Memory Bank (RARELY USED)
+
+**Note**: This step is for validation only (less common). For normal MR flow, use Step 2 (Update).
+
+If Memory Bank exists but needs validation (rare case), verify it contains the required core files:
 
 ### Required Core Files
 1. **`projectbrief.md`** - Foundation document
@@ -84,7 +314,7 @@ If any files are MISSING or INCOMPLETE, provide suggestions for improvement.
 
 ---
 
-## Step 3: Initialize New Memory Bank
+## Step 4: Initialize New Memory Bank
 
 If Memory Bank does NOT exist, create it from scratch by analyzing the project.
 

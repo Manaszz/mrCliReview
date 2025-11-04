@@ -107,3 +107,30 @@ Changes to the Memory Bank documentation.
 - Core Functionality Completion: 95% (was 90%)
 - New files: 5 (4 prompts + 1 documentation)
 
+## 2025-11-04 - Memory Bank Auto-Update Feature
+
+### Enhanced
+- **MEMORY_BANK Review Type**: Added auto-update mode (PRIMARY)
+  - Now operates in 3 modes: Update (primary), Validate (rare), Initialize (once)
+  - **Update Mode**: Analyzes MR changes and updates Memory Bank automatically
+    - Always updates: `activeContext.md`, `changelog.md`
+    - Conditionally updates: `systemPatterns.md`, `techContext.md`, `progress.md`
+    - Commits changes to MR branch with `[skip ci]` tag
+  - Keeps Memory Bank current with every MR
+  
+- **Updated Prompts**:
+  - `prompts/cline/memory_bank.md`: Added Step 2 (Update Mode)
+  - `prompts/qwen/memory_bank.md`: Added Step 2 (Update Mode)
+  - Detailed instructions for which files to update when
+  - Git commit and push commands included
+
+- **Updated Documentation**:
+  - `docs/NEW_REVIEW_TYPES.md`: Documented all 3 operating modes
+  - Added auto-update workflow diagram
+  - Added commit details and integration explanation
+
+### Changed
+- Memory Bank is now a **living document** that updates with each MR
+- Recommended to run MEMORY_BANK on every MR (not just initialization)
+- Agent now proactively maintains project context
+

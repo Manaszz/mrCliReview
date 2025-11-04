@@ -163,18 +163,23 @@ The system is in **active development** with core functionality implemented:
 
 **Context**: How to provide project context to CLI agents?
 
-**Decision**: Use Cursor's Memory Bank (v1.2 Final) methodology with automatic detection.
+**Decision**: Use Cursor's Memory Bank (v1.2 Final) methodology with automatic detection and MR-based updates.
 
 **Rationale**:
 - Structured knowledge base improves review quality
 - Agents can understand project-specific patterns
 - Preserves architectural decisions and rationale
 - Living documentation that evolves with project
+- **Automatic updates keep Memory Bank current**
 
 **Implementation**:
 - System prompt instructs agents to check for `memory-bank/` directory
 - If exists, agents read key files for context
-- MEMORY_BANK review type can initialize or validate
+- MEMORY_BANK review type has 3 modes:
+  1. **Update** (PRIMARY): Analyzes MR changes and updates Memory Bank
+  2. **Validate** (rare): Checks structure completeness
+  3. **Initialize**: Creates new Memory Bank from scratch
+- Agent commits updates back to MR branch with `[skip ci]` tag
 - Documented in `docs/NEW_REVIEW_TYPES.md`
 
 ### Decision: Unit Test Coverage Automation

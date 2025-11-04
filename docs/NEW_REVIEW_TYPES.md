@@ -127,9 +127,17 @@ Memory Bank is based on **Cursor's Memory Bank (v1.2 Final)** methodology. It's 
 
 ### What It Does
 
-#### If Memory Bank Exists:
-1. **Validates** all core files are present
-2. **Checks** content quality and completeness
+#### If Memory Bank Exists (PRIMARY MODE):
+1. **Updates** Memory Bank with changes from current MR:
+   - Analyzes MR changes via `git diff`
+   - Updates `activeContext.md` with recent changes (MANDATORY)
+   - Updates `systemPatterns.md` if architectural changes detected
+   - Updates `techContext.md` if new dependencies/technologies added
+   - Updates `progress.md` if features completed or status changed
+   - Updates `changelog.md` with MR entry (MANDATORY)
+   - **Commits changes back to MR branch** with `[skip ci]` tag
+
+2. **Validates** all core files are present (validation mode - rare)
 3. **Reports** status of each file
 4. **Suggests** updates if files are outdated or incomplete
 
@@ -157,11 +165,67 @@ Memory Bank is based on **Cursor's Memory Bank (v1.2 Final)** methodology. It's 
 
 - **Explicitly requested**: Include `MEMORY_BANK` in `review_types`
 - **Optional**: Not part of default review flow
-- **Recommended**: Run once per project to initialize, then periodically to validate
+- **Recommended Usage**:
+  - Run once per project to initialize
+  - Include in every MR to update Memory Bank automatically
+  - Run periodically for validation
+
+### Operating Modes
+
+1. **Update Mode (PRIMARY)**: When Memory Bank exists
+   - Analyzes MR changes
+   - Updates relevant Memory Bank files
+   - Commits changes to MR branch
+   - Use for: Every MR
+
+2. **Initialize Mode**: When Memory Bank doesn't exist
+   - Analyzes entire project
+   - Creates complete Memory Bank structure
+   - Use for: First time setup
+
+3. **Validate Mode (RARE)**: When validation needed
+   - Checks structure and completeness
+   - Reports issues
+   - Use for: Periodic audits
 
 ### Output Format
 
-#### Validation (Existing Memory Bank):
+#### Update Mode (Primary - Memory Bank Exists):
+```yaml
+memory_bank_status: UPDATED
+mr_analyzed: 123
+files_updated:
+  - file: activeContext.md
+    changes: "Added recent changes for MR !123, updated current focus"
+  - file: systemPatterns.md
+    changes: "Documented new authentication pattern"
+  - file: techContext.md
+    changes: "Added Redis dependency"
+  - file: progress.md
+    changes: "Marked user authentication feature as completed"
+  - file: changelog.md
+    changes: "Added MR !123 entry"
+
+update_summary:
+  features_added:
+    - "User authentication with JWT"
+  patterns_introduced:
+    - "Token-based authentication pattern"
+  dependencies_added:
+    - "Redis: 7.0"
+  issues_resolved:
+    - "Fixed null pointer in user service"
+
+commits_made:
+  - commit: "a1b2c3d"
+    message: "docs: Update Memory Bank for MR !123 [skip ci]"
+    files: ["memory-bank/activeContext.md", "memory-bank/changelog.md", ...]
+
+recommendations:
+  - "Consider adding authentication to productContext.md"
+```
+
+#### Validation Mode (Rare - Check Structure):
 ```yaml
 memory_bank_status: EXISTS
 validation_results:
@@ -178,7 +242,7 @@ recommendations:
   - "Add database optimization patterns to systemPatterns.md"
 ```
 
-#### Initialization (New Memory Bank):
+#### Initialize Mode (New Memory Bank):
 ```yaml
 memory_bank_status: CREATED
 files_created:
@@ -208,15 +272,36 @@ recommendations:
 
 ### Integration with Code Review
 
-Once Memory Bank exists, **all review agents automatically use it**:
+Memory Bank provides continuous context across all reviews:
 
-1. **System Prompt** instructs agents to check for `memory-bank/` directory
-2. If found, agents read key files for context
-3. Recommendations align with documented:
-   - Architectural decisions
-   - Technical constraints
-   - Project-specific patterns
-   - Current work focus
+1. **System Prompt** instructs all agents to check for `memory-bank/` directory
+2. If found, agents read key files for context:
+   - `projectbrief.md` - Project scope and objectives
+   - `systemPatterns.md` - Architectural decisions
+   - `techContext.md` - Technology stack
+   - `activeContext.md` - Current focus
+3. Recommendations align with documented decisions
+4. **Memory Bank Agent** keeps it updated with each MR
+
+### Auto-Update Workflow
+
+When MEMORY_BANK agent runs on an MR:
+
+```mermaid
+graph LR
+    A[MR Received] --> B[Check memory-bank/]
+    B --> C{Exists?}
+    C -->|Yes| D[Analyze MR Changes]
+    D --> E[Update Files]
+    E --> F[Commit to MR Branch]
+    C -->|No| G[Initialize New Bank]
+```
+
+**Commit Details**:
+- Files: Only `memory-bank/*` files
+- Message: `docs: Update Memory Bank for MR !{mr_iid} [skip ci]`
+- Tag: `[skip ci]` to avoid triggering CI pipeline
+- Push: To MR source branch (developer can review and merge)
 
 ### Configuration
 
