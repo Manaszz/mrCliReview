@@ -1,39 +1,39 @@
-# Rules Customization Guide
+# Руководство по кастомизации правил
 
-## Overview
+## Обзор
 
-The code review system uses a hierarchical rules system that allows customization at project, team, and organization levels. This guide explains how to customize rules for your specific needs.
-
----
-
-## Rule Priority Hierarchy
-
-Rules are loaded in priority order (highest to lowest):
-
-```
-1. Project-Specific Rules (.project-rules/ in repository)
-   ↓
-2. Confluence Rules (team/org standards)
-   ↓
-3. Default Rules (rules/java-spring-boot/)
-```
-
-**Override Behavior**: Higher priority rules completely override lower priority rules for the same category.
+Система code review использует иерархическую систему правил, позволяющую кастомизацию на уровне проекта, команды и организации. Это руководство объясняет, как настроить правила под ваши специфические нужды.
 
 ---
 
-## Project-Specific Rules
+## Иерархия приоритета правил
 
-### Setup
+Правила загружаются в порядке приоритета (от высшего к низшему):
 
-Create `.project-rules/` directory in your repository root:
+```
+1. Правила конкретного проекта (.project-rules/ в репозитории)
+   ↓
+2. Правила Confluence (стандарты команды/организации)
+   ↓
+3. Правила по умолчанию (rules/java-spring-boot/)
+```
+
+**Поведение переопределения**: Правила с более высоким приоритетом полностью переопределяют правила с меньшим приоритетом для той же категории.
+
+---
+
+## Правила конкретного проекта
+
+### Настройка
+
+Создайте директорию `.project-rules/` в корне вашего репозитория:
 
 ```bash
 cd your-project
 mkdir .project-rules
 ```
 
-### Structure
+### Структура
 
 ```
 your-project/
@@ -43,37 +43,37 @@ your-project/
 │   ├── security.md
 │   ├── refactoring_criteria.md
 │   ├── performance.md
-│   └── README.md (optional)
+│   └── README.md (опционально)
 ├── src/
 ├── pom.xml
 └── README.md
 ```
 
-### Creating Custom Rules
+### Создание пользовательских правил
 
-Custom rule files follow the same format as default rules.
+Файлы пользовательских правил следуют тому же формату, что и правила по умолчанию.
 
-**Example**: `.project-rules/security.md`
+**Пример**: `.project-rules/security.md`
 
 ```markdown
-# Custom Security Rules for ProjectX
+# Пользовательские правила безопасности для ProjectX
 
-## Overview
-Additional security requirements specific to ProjectX beyond standard rules.
+## Обзор
+Дополнительные требования безопасности, специфичные для ProjectX, помимо стандартных правил.
 
 ---
 
-## Rule 1: Internal API Authentication
+## Правило 1: Аутентификация внутренних API
 
-### Severity: CRITICAL
+### Серьёзность: CRITICAL
 
-### Description
-All calls to internal APIs must include our custom X-Internal-Auth token.
+### Описание
+Все вызовы внутренних API должны включать наш пользовательский токен X-Internal-Auth.
 
-### Patterns to Detect
+### Паттерны для обнаружения
 
 ```java
-// BAD: Missing authentication header
+// ПЛОХО: Отсутствует заголовок аутентификации
 RestTemplate restTemplate = new RestTemplate();
 ResponseEntity<String> response = restTemplate.getForEntity(
     "http://internal-api.company.com/users",
@@ -81,10 +81,10 @@ ResponseEntity<String> response = restTemplate.getForEntity(
 );
 ```
 
-### Correct Pattern
+### Правильный паттерн
 
 ```java
-// GOOD: Include authentication header
+// ХОРОШО: Включён заголовок аутентификации
 RestTemplate restTemplate = new RestTemplate();
 HttpHeaders headers = new HttpHeaders();
 headers.set("X-Internal-Auth", authTokenProvider.getToken());
@@ -98,16 +98,16 @@ ResponseEntity<String> response = restTemplate.exchange(
 );
 ```
 
-### Auto-fix Capability: No
+### Возможность автоисправления: Нет
 ```
 
 ---
 
-## Confluence Rules
+## Правила Confluence
 
-### Configuration
+### Конфигурация
 
-Confluence rules are loaded via n8n workflow. Configure in `.env`:
+Правила Confluence загружаются через n8n workflow. Настройте в `.env`:
 
 ```env
 CONFLUENCE_RULES_ENABLED=true
@@ -116,117 +116,117 @@ CONFLUENCE_PAGE_ID=123456789
 CONFLUENCE_CACHE_TTL=3600
 ```
 
-### Page Structure
+### Структура страницы
 
-Create a Confluence page with this structure:
+Создайте страницу Confluence с такой структурой:
 
 ```markdown
-# Development Standards - Code Review Rules
+# Стандарты разработки - Правила Code Review
 
 ## Java Spring Boot
 
-### Error Detection
+### Обнаружение ошибок
 
-[Error detection rules content...]
+[Содержимое правил обнаружения ошибок...]
 
-### Best Practices
+### Лучшие практики
 
-[Best practices content...]
+[Содержимое лучших практик...]
 
-### Security
+### Безопасность
 
-[Security rules...]
+[Правила безопасности...]
 ```
 
 ### n8n Workflow
 
-The n8n workflow:
-1. Receives review request
-2. Checks cache for Confluence rules (1 hour TTL)
-3. If not cached, fetches from Confluence REST API
-4. Parses markdown content
-5. Passes to review API as `confluence_rules` parameter
+n8n workflow:
+1. Получает запрос на ревью
+2. Проверяет кэш для правил Confluence (TTL 1 час)
+3. Если не закэшировано, получает из Confluence REST API
+4. Парсит markdown содержимое
+5. Передаёт в review API как параметр `confluence_rules`
 
 ---
 
-## Rule File Format
+## Формат файлов правил
 
-### Structure
+### Структура
 
 ```markdown
-# [Category] Rules for [Project/Team Name]
+# Правила [Категория] для [Проект/Команда]
 
-## Overview
-Brief description of these rules.
+## Обзор
+Краткое описание этих правил.
 
 ---
 
-## Rule N: Rule Name
+## Правило N: Название правила
 
-### Severity: CRITICAL | HIGH | MEDIUM | LOW
+### Серьёзность: CRITICAL | HIGH | MEDIUM | LOW
 
-### Description
-What this rule checks.
+### Описание
+Что проверяет это правило.
 
-### Patterns to Detect
-Code examples showing anti-patterns (BAD).
+### Паттерны для обнаружения
+Примеры кода, показывающие анти-паттерны (ПЛОХО).
 
-### Correct Pattern
-Code examples showing correct patterns (GOOD).
+### Правильный паттерн
+Примеры кода, показывающие правильные паттерны (ХОРОШО).
 
-### Auto-fix Capability: Yes | Partial | No
+### Возможность автоисправления: Да | Частично | Нет
 
-### References (optional)
-Links to documentation, internal wiki, etc.
+### Ссылки (опционально)
+Ссылки на документацию, внутреннюю wiki и т.д.
 
 ---
 ```
 
-### Severity Levels
+### Уровни серьёзности
 
-- **CRITICAL**: Must fix before merge (blocks MR)
-- **HIGH**: Should fix before merge (strong recommendation)
-- **MEDIUM**: Should address soon (tracked)
-- **LOW**: Nice-to-have improvement
+- **CRITICAL**: Должно быть исправлено перед слиянием (блокирует MR)
+- **HIGH**: Должно быть исправлено перед слиянием (строгая рекомендация)
+- **MEDIUM**: Должно быть исправлено в ближайшее время (отслеживается)
+- **LOW**: Улучшение "было бы неплохо"
 
 ---
 
-## Common Customization Scenarios
+## Распространённые сценарии кастомизации
 
-### Scenario 1: Company-Specific Logging Standard
+### Сценарий 1: Корпоративный стандарт логирования
 
-**Requirement**: All log statements must use SLF4J with MDC for correlation IDs.
+**Требование**: Все log statements должны использовать SLF4J с MDC для correlation IDs.
 
-**Solution**: Create `.project-rules/best_practices.md`
+**Решение**: Создайте `.project-rules/best_practices.md`
 
 ```markdown
-## Rule: Logging Standards
+## Правило: Стандарты логирования
 
-### Severity: HIGH
+### Серьёзность: HIGH
 
-### Description
-All logging must use SLF4J with MDC correlation IDs for distributed tracing.
+### Описание
+Всё логирование должно использовать SLF4J с MDC correlation IDs для распределённой трассировки.
 
-### Patterns to Detect
+### Паттерны для обнаружения
 
 ```java
-// BAD: System.out
+// ПЛОХО: System.out
 System.out.println("User logged in: " + userId);
 
-// BAD: Log without MDC
+// ПЛОХО: Log без MDC
 log.info("User logged in: {}", userId);
 ```
 
-### Correct Pattern
+### Правильный паттерн
 
 ```java
-// GOOD: SLF4J with MDC
+// ХОРОШО: SLF4J с MDC
 MDC.put("correlationId", correlationIdProvider.get());
 MDC.put("userId", userId);
 log.info("User logged in");
 MDC.clear();
 
-// BETTER: Use try-with-resources pattern
+// ЛУЧШЕ: Использовать try-with-resources паттерн
 try (MDC.MDCCloseable mdc = MDC.putCloseable("correlationId", correlationId)) {
     log.info("User logged in: {}", userId);
 }
@@ -235,41 +235,41 @@ try (MDC.MDCCloseable mdc = MDC.putCloseable("correlationId", correlationId)) {
 
 ---
 
-### Scenario 2: Stricter Transaction Isolation
+### Сценарий 2: Более строгая изоляция транзакций
 
-**Requirement**: All financial transactions must use SERIALIZABLE isolation.
+**Требование**: Все финансовые транзакции должны использовать изоляцию SERIALIZABLE.
 
-**Solution**: Create `.project-rules/transaction_management.md`
+**Решение**: Создайте `.project-rules/transaction_management.md`
 
 ```markdown
-## Rule: Financial Transaction Isolation
+## Правило: Изоляция финансовых транзакций
 
-### Severity: CRITICAL
+### Серьёзность: CRITICAL
 
-### Description
-Financial transactions MUST use SERIALIZABLE isolation level to prevent concurrent modification issues.
+### Описание
+Финансовые транзакции ДОЛЖНЫ использовать уровень изоляции SERIALIZABLE для предотвращения проблем с конкурентными изменениями.
 
-### Patterns to Detect
+### Паттерны для обнаружения
 
 ```java
-// BAD: Default isolation for financial transaction
+// ПЛОХО: Изоляция по умолчанию для финансовой транзакции
 @Transactional
 public void transferFunds(Long fromId, Long toId, BigDecimal amount) {
     // ...
 }
 ```
 
-### Correct Pattern
+### Правильный паттерн
 
 ```java
-// GOOD: SERIALIZABLE isolation
+// ХОРОШО: Изоляция SERIALIZABLE
 @Transactional(isolation = Isolation.SERIALIZABLE)
 public void transferFunds(Long fromId, Long toId, BigDecimal amount) {
     // ...
 }
 ```
 
-### Affected Services
+### Затронутые сервисы
 - PaymentService
 - AccountService
 - TransactionService
@@ -277,34 +277,34 @@ public void transferFunds(Long fromId, Long toId, BigDecimal amount) {
 
 ---
 
-### Scenario 3: Mandatory Code Ownership Annotations
+### Сценарий 3: Обязательные аннотации владения кодом
 
-**Requirement**: All services must have @TeamOwner annotation.
+**Требование**: Все сервисы должны иметь аннотацию @TeamOwner.
 
-**Solution**: Create `.project-rules/best_practices.md`
+**Решение**: Создайте `.project-rules/best_practices.md`
 
 ```markdown
-## Rule: Service Ownership
+## Правило: Владение сервисом
 
-### Severity: MEDIUM
+### Серьёзность: MEDIUM
 
-### Description
-All @Service classes must have @TeamOwner annotation for accountability.
+### Описание
+Все классы @Service должны иметь аннотацию @TeamOwner для подотчётности.
 
-### Patterns to Detect
+### Паттерны для обнаружения
 
 ```java
-// BAD: Missing @TeamOwner
+// ПЛОХО: Отсутствует @TeamOwner
 @Service
 public class UserService {
     // ...
 }
 ```
 
-### Correct Pattern
+### Правильный паттерн
 
 ```java
-// GOOD: Has @TeamOwner
+// ХОРОШО: Есть @TeamOwner
 @Service
 @TeamOwner(team = "USER_MANAGEMENT_TEAM")
 public class UserService {
@@ -312,7 +312,7 @@ public class UserService {
 }
 ```
 
-### Implementation
+### Реализация
 
 ```java
 @Target(ElementType.TYPE)
@@ -326,49 +326,49 @@ public @interface TeamOwner {
 
 ---
 
-### Scenario 4: Refactoring Size Limits
+### Сценарий 4: Ограничения размера рефакторинга
 
-**Requirement**: Any refactoring affecting >5 files must be separate MR.
+**Требование**: Любой рефакторинг, затрагивающий >5 файлов, должен быть в отдельном MR.
 
-**Solution**: Create `.project-rules/refactoring_criteria.md`
+**Решение**: Создайте `.project-rules/refactoring_criteria.md`
 
 ```markdown
-# Refactoring Classification Criteria - ProjectX
+# Критерии классификации рефакторинга - ProjectX
 
-## SIGNIFICANT Refactoring (Separate MR Required)
+## SIGNIFICANT рефакторинг (Требуется отдельный MR)
 
-### Criterion 1: Scope - More than 5 Classes Affected
+### Критерий 1: Scope - Затронуто более 5 классов
 
-**Description**: Refactoring touches more than 5 classes or files (stricter than default).
+**Описание**: Рефакторинг затрагивает более 5 классов или файлов (строже чем по умолчанию).
 
-**Rationale**: Our team prefers smaller, more focused MRs for easier review.
+**Обоснование**: Наша команда предпочитает меньшие, более сфокусированные MR для более простого ревью.
 ```
 
 ---
 
-## Partial Overrides
+## Частичные переопределения
 
-### Option 1: Complete Replacement
-Place a file in `.project-rules/` to completely replace default rules.
+### Вариант 1: Полная замена
+Поместите файл в `.project-rules/` чтобы полностью заменить правила по умолчанию.
 
-### Option 2: Additive Rules
-Use different filename to add rules without replacing:
+### Вариант 2: Дополнительные правила
+Используйте другое имя файла чтобы добавить правила без замены:
 
 ```
 .project-rules/
-├── security.md                    # Replaces default security rules
-└── custom_api_standards.md        # Additional rules (doesn't replace anything)
+├── security.md                    # Заменяет правила безопасности по умолчанию
+└── custom_api_standards.md        # Дополнительные правила (ничего не заменяет)
 ```
 
-**Note**: Currently, the system loads all `.md` files in `.project-rules/`. To add without replacing, use a unique filename that doesn't match default rule files.
+**Примечание**: В настоящее время система загружает все `.md` файлы в `.project-rules/`. Чтобы добавить без замены, используйте уникальное имя файла, которое не совпадает с файлами правил по умолчанию.
 
 ---
 
-## Testing Custom Rules
+## Тестирование пользовательских правил
 
-### Local Testing
+### Локальное тестирование
 
-1. **Create test repository**:
+1. **Создайте тестовый репозиторий**:
 ```bash
 mkdir test-project
 cd test-project
@@ -376,55 +376,55 @@ git init
 mkdir .project-rules
 ```
 
-2. **Add custom rule**:
+2. **Добавьте пользовательское правило**:
 ```bash
 cat > .project-rules/security.md << 'EOF'
-# Custom Security Rules
+# Пользовательские правила безопасности
 
-## Rule 1: Test Rule
-[rule content]
+## Правило 1: Тестовое правило
+[содержимое правила]
 EOF
 ```
 
-3. **Create test code**:
+3. **Создайте тестовый код**:
 ```bash
 mkdir -p src/main/java/com/example
 cat > src/main/java/com/example/Test.java << 'EOF'
 public class Test {
-    // Code that violates your custom rule
+    // Код, нарушающий ваше пользовательское правило
 }
 EOF
 ```
 
-4. **Commit and push**:
+4. **Закоммитьте и запушьте**:
 ```bash
 git add .
 git commit -m "Test custom rules"
 ```
 
-5. **Create MR and trigger review**:
-- The review system will detect `.project-rules/` and use your custom rules
+5. **Создайте MR и запустите ревью**:
+- Система ревью обнаружит `.project-rules/` и использует ваши пользовательские правила
 
 ---
 
-### Validation
+### Валидация
 
-Check that custom rules are loaded:
+Проверьте, что пользовательские правила загружены:
 
-1. **Review API logs**:
+1. **Логи Review API**:
 ```bash
 docker logs review-api 2>&1 | grep "Loading custom rules"
 ```
 
-Expected output:
+Ожидаемый вывод:
 ```
 2025-11-03 10:15:23 INFO Loading custom rules from .project-rules/
 2025-11-03 10:15:23 INFO Found 3 custom rule files
 2025-11-03 10:15:23 INFO Custom rules override default rules for: security, best_practices
 ```
 
-2. **Review results**:
-Check if issues reference your custom rules:
+2. **Результаты ревью**:
+Проверьте, что проблемы ссылаются на ваши пользовательские правила:
 ```json
 {
   "issues": [
@@ -439,115 +439,115 @@ Check if issues reference your custom rules:
 
 ---
 
-## Best Practices
+## Лучшие практики
 
-### 1. Start with Defaults
-Don't override rules unnecessarily. Only customize what's truly project-specific.
+### 1. Начните с правил по умолчанию
+Не переопределяйте правила без необходимости. Кастомизируйте только то, что действительно специфично для проекта.
 
-### 2. Document Why
-Include rationale for each custom rule:
+### 2. Документируйте "почему"
+Включайте обоснование для каждого пользовательского правила:
 ```markdown
-### Rationale
-We use this pattern because:
-1. Our infrastructure requires it
-2. Past incidents showed the risk
-3. Compliance requirement XYZ
+### Обоснование
+Мы используем этот паттерн потому что:
+1. Наша инфраструктура требует его
+2. Прошлые инциденты показали риск
+3. Требование соответствия XYZ
 ```
 
-### 3. Team Review
-Before committing custom rules, get team consensus:
-- Code review the rules
-- Test on sample code
-- Iterate based on feedback
+### 3. Командное ревью
+Перед коммитом пользовательских правил получите консенсус команды:
+- Code review самих правил
+- Тест на примерном коде
+- Итерация на основе фидбека
 
-### 4. Version Control
-- Commit `.project-rules/` to your repository
-- Track changes with meaningful commit messages
-- Tag major rule updates
+### 4. Контроль версий
+- Коммитьте `.project-rules/` в ваш репозиторий
+- Отслеживайте изменения с осмысленными commit messages
+- Тегируйте важные обновления правил
 
-### 5. Keep Updated
-Review and update custom rules when:
-- Team standards change
-- New technologies adopted
-- Lessons learned from incidents
+### 5. Поддерживайте актуальность
+Просматривайте и обновляйте пользовательские правила когда:
+- Меняются стандарты команды
+- Приняты новые технологии
+- Извлечены уроки из инцидентов
 
-### 6. Reference Docs
-Link to internal documentation:
+### 6. Ссылайтесь на документацию
+Ссылайтесь на внутреннюю документацию:
 ```markdown
-### References
-- [Internal Wiki: Logging Standards](https://wiki.company.com/logging)
+### Ссылки
+- [Внутренняя Wiki: Стандарты логирования](https://wiki.company.com/logging)
 - [Architecture Decision Record: ADR-023](https://wiki.company.com/adr/023)
 ```
 
 ---
 
-## Migration Guide
+## Руководство по миграции
 
-### Migrating from Manual Reviews
+### Миграция с ручного ревью
 
-**Step 1**: Document existing standards
-- Review past MR comments
-- Extract common feedback patterns
-- Identify repetitive issues
+**Шаг 1**: Документируйте существующие стандарты
+- Просмотрите прошлые комментарии к MR
+- Извлеките общие паттерны фидбека
+- Идентифицируйте повторяющиеся проблемы
 
-**Step 2**: Create rule files
-- Start with high-severity issues
-- Add examples from real code
-- Include correct patterns
+**Шаг 2**: Создайте файлы правил
+- Начните с проблем высокой серьёзности
+- Добавьте примеры из реального кода
+- Включите правильные паттерны
 
-**Step 3**: Pilot testing
-- Test on recent MRs
-- Compare AI findings vs manual review
-- Refine rules based on results
+**Шаг 3**: Пилотное тестирование
+- Протестируйте на недавних MR
+- Сравните находки AI с ручным ревью
+- Уточните правила на основе результатов
 
-**Step 4**: Team rollout
-- Document custom rules in README
-- Train team on rule customization
-- Establish process for updating rules
+**Шаг 4**: Развёртывание в команде
+- Задокументируйте пользовательские правила в README
+- Обучите команду кастомизации правил
+- Установите процесс обновления правил
 
 ---
 
-## Troubleshooting
+## Устранение неполадок
 
-### Issue: Custom Rules Not Applied
+### Проблема: Пользовательские правила не применяются
 
-**Check**:
-1. `.project-rules/` directory in repository root?
-2. Files named correctly (e.g., `security.md`)?
-3. Valid markdown format?
-4. Files committed and pushed to branch being reviewed?
+**Проверьте**:
+1. Директория `.project-rules/` в корне репозитория?
+2. Файлы названы правильно (например, `security.md`)?
+3. Валидный markdown формат?
+4. Файлы закоммичены и запушены в ветку, которая проверяется?
 
-**Debug**:
+**Дебаг**:
 ```bash
-# Check if directory exists in cloned repo
+# Проверьте, существует ли директория в клонированном репо
 ls -la /tmp/review/project-{id}-mr-{iid}/.project-rules/
 
-# Check file content
+# Проверьте содержимое файла
 cat /tmp/review/project-{id}-mr-{iid}/.project-rules/security.md
 ```
 
 ---
 
-### Issue: Rules Conflict with Defaults
+### Проблема: Конфликт правил с правилами по умолчанию
 
-**Expected Behavior**: Project rules completely override defaults for same category.
+**Ожидаемое поведение**: Правила проекта полностью переопределяют правила по умолчанию для той же категории.
 
-**If seeing both project and default rules**:
-- Ensure filenames match exactly (case-sensitive)
-- Check CustomRulesLoader priority logic
-- Verify no duplicate categories in same file
+**Если видите и правила проекта, и правила по умолчанию**:
+- Убедитесь, что имена файлов совпадают точно (регистрозависимые)
+- Проверьте логику приоритетов CustomRulesLoader
+- Проверьте отсутствие дублирующихся категорий в одном файле
 
 ---
 
-### Issue: Confluence Rules Not Loading
+### Проблема: Правила Confluence не загружаются
 
-**Check**:
-1. `CONFLUENCE_RULES_ENABLED=true` in `.env`?
-2. Confluence credentials valid?
-3. Page ID correct?
-4. n8n workflow active?
+**Проверьте**:
+1. `CONFLUENCE_RULES_ENABLED=true` в `.env`?
+2. Учётные данные Confluence валидны?
+3. Page ID правильный?
+4. n8n workflow активен?
 
-**Test Confluence connection**:
+**Тест соединения Confluence**:
 ```bash
 curl -u email@example.com:api_token \
   https://yourcompany.atlassian.net/wiki/rest/api/content/123456789?expand=body.storage
@@ -555,111 +555,109 @@ curl -u email@example.com:api_token \
 
 ---
 
-## Examples
+## Примеры
 
-### Complete Example: Microservice Team Rules
+### Полный пример: Правила команды микросервисов
 
 ```markdown
-# UserService Team Code Review Rules
+# Правила Code Review команды UserService
 
-## Overview
-Custom rules for UserService microservice team, enforcing service-specific patterns.
+## Обзор
+Пользовательские правила для команды микросервиса UserService, применяющие паттерны, специфичные для сервиса.
 
 ---
 
-## Rule 1: User Data Access
+## Правило 1: Доступ к данным пользователей
 
-### Severity: CRITICAL
+### Серьёзность: CRITICAL
 
-### Description
-All user data access must go through UserRepository. Direct database access prohibited.
+### Описание
+Весь доступ к данным пользователей должен проходить через UserRepository. Прямой доступ к БД запрещён.
 
-### Patterns to Detect
+### Паттерны для обнаружения
 ```java
-// BAD: Direct JDBC access
+// ПЛОХО: Прямой JDBC доступ
 Connection conn = dataSource.getConnection();
 PreparedStatement stmt = conn.prepareStatement("SELECT * FROM users WHERE id = ?");
 ```
 
-### Correct Pattern
+### Правильный паттерн
 ```java
-// GOOD: Use repository
+// ХОРОШО: Использовать репозиторий
 User user = userRepository.findById(userId).orElseThrow();
 ```
 
 ---
 
-## Rule 2: User PII Logging
+## Правило 2: Логирование PII пользователей
 
-### Severity: CRITICAL
+### Серьёзность: CRITICAL
 
-### Description
-Never log user PII (email, phone, address). Use userId only.
+### Описание
+Никогда не логируйте PII пользователей (email, телефон, адрес). Используйте только userId.
 
-### Patterns to Detect
+### Паттерны для обнаружения
 ```java
-// BAD: Logging email
+// ПЛОХО: Логирование email
 log.info("User logged in: {}", user.getEmail());
 ```
 
-### Correct Pattern
+### Правильный паттерн
 ```java
-// GOOD: Log userId only
+// ХОРОШО: Логировать только userId
 log.info("User logged in: userId={}", user.getId());
 ```
 
 ---
 
-## Rule 3: User State Transitions
+## Правило 3: Переходы состояния пользователя
 
-### Severity: HIGH
+### Серьёзность: HIGH
 
-### Description
-User status changes must go through UserStateMachine to enforce valid transitions.
+### Описание
+Изменения статуса пользователя должны проходить через UserStateMachine для обеспечения валидных переходов.
 
-### Patterns to Detect
+### Паттерны для обнаружения
 ```java
-// BAD: Direct status change
+// ПЛОХО: Прямое изменение статуса
 user.setStatus(UserStatus.SUSPENDED);
 userRepository.save(user);
 ```
 
-### Correct Pattern
+### Правильный паттерн
 ```java
-// GOOD: Use state machine
+// ХОРОШО: Использовать state machine
 userStateMachine.transition(user, UserStatus.SUSPENDED);
 ```
 
 ---
 
-## Team Contacts
-- Owner: @john.doe
+## Контакты команды
+- Владелец: @john.doe
 - Slack: #user-service-team
 - Wiki: https://wiki.company.com/teams/user-service
 ```
 
 ---
 
-## Future Enhancements
+## Будущие улучшения
 
-### Planned Features
-1. **Rule Templates**: Reusable rule snippets
-2. **Rule Testing Framework**: Automated testing of custom rules
-3. **Rule Analytics**: Track effectiveness of custom rules
-4. **Rule Versioning**: Support multiple rule versions per project
-5. **Rule Inheritance**: Inherit from team/org rules with modifications
+### Запланированные функции
+1. **Шаблоны правил**: Переиспользуемые фрагменты правил
+2. **Фреймворк тестирования правил**: Автоматизированное тестирование пользовательских правил
+3. **Аналитика правил**: Отслеживание эффективности пользовательских правил
+4. **Версионирование правил**: Поддержка нескольких версий правил для проекта
+5. **Наследование правил**: Наследование от правил команды/организации с модификациями
 
 ---
 
-## References
+## Ссылки
 
-- [Default Rules Documentation](../rules/java-spring-boot/README.md)
-- [Prompts Guide](PROMPTS_GUIDE.md)
+- [Документация правил по умолчанию](../rules/java-spring-boot/README.md)
+- [Руководство по Prompts](PROMPTS_GUIDE.md)
 - [Confluence REST API](https://developer.atlassian.com/cloud/confluence/rest/v1/)
 
 ---
 
-**Last Updated**: 2025-11-03  
-**Version**: 2.0.0
-
-
+**Последнее обновление**: 2025-11-03  
+**Версия**: 2.0.0

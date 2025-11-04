@@ -1,53 +1,53 @@
-# Air-Gap Transfer Guide
+# Руководство по Air-Gap передаче
 
-## Overview
+## Обзор
 
-This guide provides step-by-step instructions for deploying the code review system in an air-gapped (isolated) environment without internet access.
+Это руководство предоставляет пошаговые инструкции для развёртывания системы code review в air-gapped (изолированной) среде без доступа в интернет.
 
 ---
 
-## Prerequisites
+## Предварительные требования
 
-### Connected Environment Requirements
-- Internet access
-- Docker and Docker Compose
+### Требования к подключённой среде
+- Доступ в интернет
+- Docker и Docker Compose
 - Python 3.11+
 - Node.js 18+
 - npm 9+
-- 20GB free disk space for archives
+- 20GB свободного места на диске для архивов
 
-### Isolated Environment Requirements
-- Docker and Docker Compose installed
-- Access to internal model API
-- Access to internal GitLab instance
-- 20GB free disk space
-- Internal container registry (optional but recommended)
+### Требования к изолированной среде
+- Установленные Docker и Docker Compose
+- Доступ к внутреннему model API
+- Доступ к внутреннему GitLab instance
+- 20GB свободного места на диске
+- Внутренний container registry (опционально, но рекомендуется)
 
 ---
 
-## Phase 1: Preparation (Connected Environment)
+## Фаза 1: Подготовка (Подключённая среда)
 
-### Step 1: Export Docker Images
+### Шаг 1: Экспорт Docker образов
 
 ```bash
-# Navigate to project directory
+# Перейдите в директорию проекта
 cd code-review-system
 
-# Build Docker image
+# Соберите Docker образ
 docker-compose build
 
-# Export review API image
+# Экспортируйте образ review API
 docker save -o review-api.tar review-api:latest
 
-# Export base Python image (if not available in isolated environment)
+# Экспортируйте базовый Python образ (если недоступен в изолированной среде)
 docker pull python:3.11-slim
 docker save -o python-3.11-slim.tar python:3.11-slim
 
-# Verify archives
+# Проверьте архивы
 ls -lh *.tar
 ```
 
-Expected output:
+Ожидаемый вывод:
 ```
 -rw-r--r-- 1 user user 1.2G Nov  3 10:00 review-api.tar
 -rw-r--r-- 1 user user 150M Nov  3 10:05 python-3.11-slim.tar
@@ -55,60 +55,60 @@ Expected output:
 
 ---
 
-### Step 2: Download npm Packages
+### Шаг 2: Скачать npm пакеты
 
 ```bash
-# Create packages directory
+# Создайте директорию для пакетов
 mkdir -p air-gap-packages/npm
 
-# Download Cline CLI
+# Скачайте Cline CLI
 cd air-gap-packages/npm
 npm pack @cline/cli
 npm pack @qwen-code/qwen-code
 
-# Download dependencies
+# Скачайте зависимости
 mkdir cline-deps qwen-deps
 
-# Cline dependencies
+# Зависимости Cline
 cd cline-deps
 npm install @cline/cli --no-save
 tar -czf ../cline-dependencies.tar.gz node_modules/
 cd ..
 
-# Qwen Code dependencies
+# Зависимости Qwen Code
 cd qwen-deps
 npm install @qwen-code/qwen-code --no-save
 tar -czf ../qwen-dependencies.tar.gz node_modules/
 cd ../..
 
-# Verify packages
+# Проверьте пакеты
 ls -lh air-gap-packages/npm/
 ```
 
 ---
 
-### Step 3: Create Python Offline Repository
+### Шаг 3: Создать offline репозиторий Python
 
 ```bash
-# Create pip packages directory
+# Создайте директорию для pip пакетов
 mkdir -p air-gap-packages/pip
 
-# Download all Python dependencies
+# Скачайте все Python зависимости
 pip download \
   -r requirements.txt \
   -d air-gap-packages/pip/
 
-# Verify packages
+# Проверьте пакеты
 ls -lh air-gap-packages/pip/ | wc -l
-# Should show 20-30 packages
+# Должно показать 20-30 пакетов
 ```
 
 ---
 
-### Step 4: Archive Application Files
+### Шаг 4: Архивировать файлы приложения
 
 ```bash
-# Create archive of application code
+# Создайте архив кода приложения
 tar -czf code-review-app.tar.gz \
   --exclude='.git' \
   --exclude='__pycache__' \
@@ -129,142 +129,142 @@ tar -czf code-review-app.tar.gz \
 
 ---
 
-### Step 5: Create Transfer Package
+### Шаг 5: Создать пакет для передачи
 
 ```bash
-# Create final transfer directory
+# Создайте финальную директорию передачи
 mkdir -p air-gap-transfer
 
-# Move all artifacts
+# Переместите все артефакты
 mv review-api.tar air-gap-transfer/
 mv python-3.11-slim.tar air-gap-transfer/
 mv code-review-app.tar.gz air-gap-transfer/
 mv air-gap-packages air-gap-transfer/
 
-# Create installation script
+# Создайте скрипт установки
 cat > air-gap-transfer/install.sh << 'EOF'
 #!/bin/bash
 set -e
 
-echo "=== Code Review System Air-Gap Installation ==="
+echo "=== Установка Code Review System для Air-Gap ==="
 
-# Load Docker images
-echo "Loading Docker images..."
+# Загрузить Docker образы
+echo "Загрузка Docker образов..."
 docker load -i review-api.tar
 docker load -i python-3.11-slim.tar
 
-# Extract application
-echo "Extracting application files..."
+# Извлечь приложение
+echo "Извлечение файлов приложения..."
 tar -xzf code-review-app.tar.gz
 
-# Install npm packages
-echo "Installing CLI tools..."
+# Установить npm пакеты
+echo "Установка CLI инструментов..."
 npm install -g air-gap-packages/npm/cline-cli-*.tgz
 npm install -g air-gap-packages/npm/qwen-code-*.tgz
 
-# Verify installations
+# Проверить установки
 cline --version
 qwen-code --version
 
-echo "=== Installation Complete ==="
-echo "Next steps:"
-echo "1. Configure .env file"
-echo "2. Run: docker-compose up -d"
-echo "3. Check logs: docker-compose logs -f"
+echo "=== Установка завершена ==="
+echo "Следующие шаги:"
+echo "1. Настройте .env файл"
+echo "2. Запустите: docker-compose up -d"
+echo "3. Проверьте логи: docker-compose logs -f"
 EOF
 
 chmod +x air-gap-transfer/install.sh
 
-# Create README
+# Создайте README
 cat > air-gap-transfer/README.txt << 'EOF'
-Code Review System - Air-Gap Transfer Package
+Code Review System - Пакет для Air-Gap передачи
 ==============================================
 
-Contents:
-- review-api.tar: Docker image for review API
-- python-3.11-slim.tar: Base Python Docker image
-- code-review-app.tar.gz: Application code and configuration
-- air-gap-packages/: npm and pip packages
-- install.sh: Installation script
+Содержимое:
+- review-api.tar: Docker образ для review API
+- python-3.11-slim.tar: Базовый Python Docker образ
+- code-review-app.tar.gz: Код приложения и конфигурация
+- air-gap-packages/: npm и pip пакеты
+- install.sh: Скрипт установки
 
-Installation:
-1. Transfer this entire directory to isolated environment
-2. Run: ./install.sh
-3. Follow post-installation instructions
+Установка:
+1. Перенесите всю эту директорию в изолированную среду
+2. Запустите: ./install.sh
+3. Следуйте инструкциям после установки
 
-For detailed instructions, see docs/AIR_GAP_TRANSFER.md
+Для детальных инструкций см. docs/AIR_GAP_TRANSFER.md
 EOF
 
-# Create manifest
+# Создайте манифест
 cat > air-gap-transfer/MANIFEST.txt << 'EOF'
-Package Manifest - Generated $(date)
+Манифест пакета - Создан $(date)
 ====================================
 
-Docker Images:
+Docker образы:
 - review-api:latest
 - python:3.11-slim
 
-NPM Packages:
+NPM пакеты:
 - @cline/cli@2.1.0
 - @qwen-code/qwen-code@1.5.0
 
-Python Packages:
+Python пакеты:
 $(ls -1 air-gap-packages/pip/ | head -20)
 ...
 
-Total Size: $(du -sh air-gap-transfer | cut -f1)
+Общий размер: $(du -sh air-gap-transfer | cut -f1)
 EOF
 
-# Create final archive
+# Создайте финальный архив
 cd ..
 tar -czf code-review-air-gap-$(date +%Y%m%d).tar.gz air-gap-transfer/
 
-echo "=== Package Ready ==="
+echo "=== Пакет готов ==="
 ls -lh code-review-air-gap-*.tar.gz
 ```
 
 ---
 
-## Phase 2: Transfer
+## Фаза 2: Передача
 
-### Physical Transfer Options
+### Варианты физической передачи
 
-#### Option 1: External Drive
+#### Вариант 1: Внешний диск
 ```bash
-# Copy to USB drive
+# Скопируйте на USB диск
 cp code-review-air-gap-*.tar.gz /media/usb-drive/
 
-# Eject safely
+# Безопасно извлеките
 sync
 umount /media/usb-drive
 ```
 
-#### Option 2: Internal File Transfer System
+#### Вариант 2: Внутренняя система передачи файлов
 ```bash
-# Upload to internal transfer system
-# (Specific to your organization's process)
+# Загрузите во внутреннюю систему передачи
+# (Специфично для процесса вашей организации)
 ```
 
-#### Option 3: CD/DVD
+#### Вариант 3: CD/DVD
 ```bash
-# For smaller packages
+# Для меньших пакетов
 brasero code-review-air-gap-*.tar.gz
 ```
 
 ---
 
-## Phase 3: Installation (Isolated Environment)
+## Фаза 3: Установка (Изолированная среда)
 
-### Step 1: Extract Transfer Package
+### Шаг 1: Извлечь пакет передачи
 
 ```bash
-# Transfer file to isolated server
+# Перенесите файл на изолированный сервер
 scp code-review-air-gap-20251103.tar.gz isolated-server:/opt/
 
-# SSH to isolated server
+# SSH на изолированный сервер
 ssh isolated-server
 
-# Extract package
+# Извлеките пакет
 cd /opt
 tar -xzf code-review-air-gap-20251103.tar.gz
 cd air-gap-transfer
@@ -272,74 +272,74 @@ cd air-gap-transfer
 
 ---
 
-### Step 2: Run Installation Script
+### Шаг 2: Запустить скрипт установки
 
 ```bash
-# Make script executable (if needed)
+# Сделайте скрипт исполняемым (если нужно)
 chmod +x install.sh
 
-# Run installation
+# Запустите установку
 sudo ./install.sh
 ```
 
-Expected output:
+Ожидаемый вывод:
 ```
-=== Code Review System Air-Gap Installation ===
-Loading Docker images...
+=== Установка Code Review System для Air-Gap ===
+Загрузка Docker образов...
 Loaded image: review-api:latest
 Loaded image: python:3.11-slim
-Extracting application files...
-Installing CLI tools...
+Извлечение файлов приложения...
+Установка CLI инструментов...
 /usr/local/bin/cline -> ...
 /usr/local/bin/qwen-code -> ...
 cline version 2.1.0
 qwen-code version 1.5.0
-=== Installation Complete ===
+=== Установка завершена ===
 ```
 
 ---
 
-### Step 3: Configure Environment
+### Шаг 3: Настроить окружение
 
 ```bash
-# Copy example env file
+# Скопируйте example env файл
 cp .env.example .env
 
-# Edit configuration
+# Редактируйте конфигурацию
 nano .env
 ```
 
-Required configuration for isolated environment:
+Требуемая конфигурация для изолированной среды:
 
 ```env
-# Model API (internal endpoint)
+# Model API (внутренний endpoint)
 MODEL_API_URL=https://internal-model-api.company.local/v1
 MODEL_API_KEY=your-internal-api-key
 
-# Model names (must be available in internal deployment)
+# Имена моделей (должны быть доступны во внутреннем развёртывании)
 DEEPSEEK_MODEL_NAME=deepseek-v3.1-terminus
 QWEN3_MODEL_NAME=qwen3-coder-32b
 
-# GitLab (internal instance)
+# GitLab (внутренний instance)
 GITLAB_URL=https://gitlab.company.local
 GITLAB_TOKEN=your-gitlab-token
 
-# CLI configuration
+# Конфигурация CLI
 DEFAULT_CLI_AGENT=CLINE
 CLINE_PARALLEL_TASKS=5
 QWEN_PARALLEL_TASKS=3
 
-# Application
+# Приложение
 LOG_LEVEL=INFO
 REVIEW_TIMEOUT=300
 ```
 
 ---
 
-### Step 4: Configure CLIs
+### Шаг 4: Настроить CLI
 
 ```bash
-# Configure Cline CLI
+# Настройте Cline CLI
 mkdir -p ~/.config/cline
 cat > ~/.config/cline/config.json << EOF
 {
@@ -354,7 +354,7 @@ cat > ~/.config/cline/config.json << EOF
 }
 EOF
 
-# Configure Qwen Code CLI
+# Настройте Qwen Code CLI
 mkdir -p ~/.config/qwen-code
 cat > ~/.config/qwen-code/config.json << EOF
 {
@@ -372,20 +372,20 @@ EOF
 
 ---
 
-### Step 5: Start Services
+### Шаг 5: Запустить сервисы
 
 ```bash
-# Start with docker-compose
+# Запустите с docker-compose
 docker-compose up -d
 
-# Check status
+# Проверьте статус
 docker-compose ps
 
-# View logs
+# Просмотрите логи
 docker-compose logs -f review-api
 ```
 
-Expected output:
+Ожидаемый вывод:
 ```
 review-api_1  | INFO:     Started server process
 review-api_1  | INFO:     Waiting for application startup.
@@ -395,13 +395,13 @@ review-api_1  | INFO:     Uvicorn running on http://0.0.0.0:8000
 
 ---
 
-### Step 6: Verify Installation
+### Шаг 6: Проверить установку
 
 ```bash
-# Test health endpoint
+# Протестируйте health endpoint
 curl http://localhost:8000/api/v1/health
 
-# Expected response
+# Ожидаемый ответ
 {
   "status": "healthy",
   "version": "2.0.0",
@@ -410,85 +410,85 @@ curl http://localhost:8000/api/v1/health
   "model_api_connected": true
 }
 
-# Test CLI connections
+# Протестируйте CLI соединения
 cline --test-connection
 qwen-code --test-connection
 ```
 
 ---
 
-## Phase 4: Internal Container Registry (Optional)
+## Фаза 4: Внутренний Container Registry (Опционально)
 
-For easier management, push images to internal registry:
+Для более простого управления, загрузите образы во внутренний registry:
 
-### Setup
+### Настройка
 
 ```bash
-# Tag images for internal registry
+# Пометьте образы для внутреннего registry
 docker tag review-api:latest registry.company.local/code-review/review-api:2.0.0
 docker tag review-api:latest registry.company.local/code-review/review-api:latest
 
-# Push to registry
+# Загрузите в registry
 docker push registry.company.local/code-review/review-api:2.0.0
 docker push registry.company.local/code-review/review-api:latest
 ```
 
-### Update docker-compose.yml
+### Обновите docker-compose.yml
 
 ```yaml
 services:
   review-api:
     image: registry.company.local/code-review/review-api:latest
-    # Remove 'build' directive
+    # Удалите директиву 'build'
     environment:
       - MODEL_API_KEY=${MODEL_API_KEY}
-      # ... other env vars
+      # ... другие env переменные
 ```
 
 ---
 
-## Troubleshooting
+## Устранение неполадок
 
-### Issue: Docker Load Failed
+### Проблема: Не удалось загрузить Docker
 
-**Symptoms**:
+**Симптомы**:
 ```
 Error loading image: unexpected EOF
 ```
 
-**Solutions**:
-1. **Verify archive integrity**:
+**Решения**:
+1. **Проверьте целостность архива**:
 ```bash
 tar -tzf review-api.tar | head
 ```
 
-2. **Re-export image**:
+2. **Переэкспортируйте образ**:
 ```bash
-# In connected environment
+# В подключённой среде
 docker save review-api:latest | gzip > review-api.tar.gz
 ```
 
-3. **Check disk space**:
+3. **Проверьте место на диске**:
 ```bash
 df -h /var/lib/docker
 ```
 
 ---
 
-### Issue: npm Install Failed
+### Проблема: Не удалось установить npm
 
-**Symptoms**:
+**Симптомы**:
 ```
 npm ERR! network request failed
 ```
 
-**Solutions**:
-1. **Install from local tarball**:
+**Решения**:
+1. **Установите из локального tarball**:
 ```bash
 npm install -g /path/to/cline-cli-2.1.0.tgz
 ```
 
-2. **Extract dependencies manually**:
+2. **Извлеките зависимости вручную**:
 ```bash
 cd /usr/local/lib/node_modules
 tar -xzf /path/to/cline-dependencies.tar.gz
@@ -496,65 +496,65 @@ tar -xzf /path/to/cline-dependencies.tar.gz
 
 ---
 
-### Issue: Python Packages Missing
+### Проблема: Отсутствуют Python пакеты
 
-**Symptoms**:
+**Симптомы**:
 ```
 ModuleNotFoundError: No module named 'fastapi'
 ```
 
-**Solutions**:
-1. **Install from offline repository**:
+**Решения**:
+1. **Установите из offline репозитория**:
 ```bash
 pip install --no-index --find-links=/path/to/air-gap-packages/pip/ -r requirements.txt
 ```
 
-2. **Verify packages downloaded**:
+2. **Проверьте скачанные пакеты**:
 ```bash
 ls -1 air-gap-packages/pip/*.whl | wc -l
 ```
 
 ---
 
-### Issue: Model API Connection Failed
+### Проблема: Не удалось подключиться к Model API
 
-**Symptoms**:
+**Симптомы**:
 ```
 Error: Failed to connect to model API
 ```
 
-**Solutions**:
-1. **Test internal API**:
+**Решения**:
+1. **Протестируйте внутренний API**:
 ```bash
 curl -H "Authorization: Bearer $MODEL_API_KEY" \
   https://internal-model-api.company.local/v1/models
 ```
 
-2. **Check network access**:
+2. **Проверьте доступ к сети**:
 ```bash
 telnet internal-model-api.company.local 443
 ```
 
-3. **Verify certificates** (if HTTPS):
+3. **Проверьте сертификаты** (если HTTPS):
 ```bash
 openssl s_client -connect internal-model-api.company.local:443
 ```
 
 ---
 
-## Updates and Patches
+## Обновления и патчи
 
-### Updating in Air-Gap Environment
+### Обновление в Air-Gap среде
 
-1. **In connected environment**:
+1. **В подключённой среде**:
 ```bash
-# Pull latest changes
+# Получите последние изменения
 git pull
 
-# Rebuild image
+# Пересоберите образ
 docker-compose build
 
-# Create update package
+# Создайте пакет обновления
 docker save -o review-api-update.tar review-api:latest
 tar -czf update-$(date +%Y%m%d).tar.gz \
   review-api-update.tar \
@@ -564,95 +564,95 @@ tar -czf update-$(date +%Y%m%d).tar.gz \
   requirements.txt
 ```
 
-2. **Transfer update package**
+2. **Перенесите пакет обновления**
 
-3. **In isolated environment**:
+3. **В изолированной среде**:
 ```bash
-# Extract update
+# Извлеките обновление
 tar -xzf update-20251103.tar.gz
 
-# Load new image
+# Загрузите новый образ
 docker load -i review-api-update.tar
 
-# Stop current services
+# Остановите текущие сервисы
 docker-compose down
 
-# Start with new image
+# Запустите с новым образом
 docker-compose up -d
 ```
 
 ---
 
-## Security Considerations
+## Соображения безопасности
 
-### Verification
+### Проверка
 
-1. **Checksum verification**:
+1. **Проверка контрольной суммы**:
 ```bash
-# In connected environment
+# В подключённой среде
 sha256sum code-review-air-gap-*.tar.gz > checksums.txt
 
-# In isolated environment
+# В изолированной среде
 sha256sum -c checksums.txt
 ```
 
-2. **GPG signature** (if applicable):
+2. **GPG подпись** (если применимо):
 ```bash
-# Sign package
+# Подпишите пакет
 gpg --detach-sign code-review-air-gap-*.tar.gz
 
-# Verify signature
+# Проверьте подпись
 gpg --verify code-review-air-gap-*.tar.gz.sig
 ```
 
 ---
 
-### Access Control
+### Контроль доступа
 
-- Restrict access to installation directory
-- Use secure credentials for GitLab and model API
-- Implement least privilege principles
+- Ограничьте доступ к директории установки
+- Используйте безопасные credentials для GitLab и model API
+- Реализуйте принципы наименьших привилегий
 
 ```bash
-# Secure installation directory
+# Защитите директорию установки
 chmod 750 /opt/code-review
 chown root:code-review /opt/code-review
 
-# Secure env file
+# Защитите env файл
 chmod 600 .env
 ```
 
 ---
 
-## Backup and Recovery
+## Резервное копирование и восстановление
 
-### Backup
+### Резервное копирование
 
 ```bash
-# Backup configuration
+# Резервная копия конфигурации
 tar -czf backup-config-$(date +%Y%m%d).tar.gz \
   .env \
   docker-compose.yml \
   ~/.config/cline/ \
   ~/.config/qwen-code/
 
-# Backup data
+# Резервная копия данных
 docker-compose exec review-api tar -czf - /app/logs > backup-logs-$(date +%Y%m%d).tar.gz
 ```
 
-### Recovery
+### Восстановление
 
 ```bash
-# Restore configuration
+# Восстановите конфигурацию
 tar -xzf backup-config-20251103.tar.gz
 
-# Restart services
+# Перезапустите сервисы
 docker-compose restart
 ```
 
 ---
 
-## References
+## Ссылки
 
 - [Docker Save/Load Documentation](https://docs.docker.com/engine/reference/commandline/save/)
 - [npm Offline Installation](https://docs.npmjs.com/cli/v9/commands/npm-install)
@@ -660,7 +660,5 @@ docker-compose restart
 
 ---
 
-**Last Updated**: 2025-11-03  
-**Version**: 2.0.0
-
-
+**Последнее обновление**: 2025-11-03  
+**Версия**: 2.0.0

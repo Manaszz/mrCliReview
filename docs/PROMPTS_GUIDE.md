@@ -1,261 +1,261 @@
-# Prompts System Guide
+# Руководство по системе промптов
 
-## Overview
+## Обзор
 
-The prompts system provides structured instructions to CLI agents (Cline and Qwen Code) for performing code reviews. Prompts are externalized, version-controlled, and support variable substitution for flexibility.
+Система промптов предоставляет структурированные инструкции для CLI агентов (Cline и Qwen Code) для выполнения code review. Промпты экстернализованы, находятся под контролем версий и поддерживают подстановку переменных для гибкости.
 
 ---
 
-## Directory Structure
+## Структура директорий
 
 ```
 prompts/
-├── cline/                      # Prompts for Cline CLI (DeepSeek V3.1)
+├── cline/                      # Промпты для Cline CLI (DeepSeek V3.1)
 │   ├── error_detection.md
 │   ├── best_practices.md
 │   ├── refactoring.md
 │   ├── security_audit.md
 │   └── documentation.md
-├── qwen/                       # Prompts for Qwen Code CLI
+├── qwen/                       # Промпты для Qwen Code CLI
 │   ├── error_detection.md
 │   ├── best_practices.md
 │   └── refactoring.md
-├── additional/                 # Prompts for specialized review types
+├── additional/                 # Промпты для специализированных типов ревью
 │   ├── performance.md
 │   ├── architecture.md
 │   ├── transaction_management.md
 │   ├── concurrency.md
 │   └── database_optimization.md
-└── todo/                       # Prompts for future TODO features
+└── todo/                       # Промпты для будущих TODO функций
     ├── jira_task_matcher.md
     └── changelog_generator.md
 ```
 
 ---
 
-## Prompt Structure
+## Структура промпта
 
-Each prompt file follows this structure:
+Каждый файл промпта следует этой структуре:
 
 ```markdown
-# [Review Type] Prompt for [CLI Agent]
+# Промпт [Тип ревью] для [CLI Агент]
 
-## Objective
-Clear statement of what this prompt aims to achieve.
+## Цель
+Чёткое определение того, что промпт стремится достичь.
 
-## Context
-Variables that will be substituted:
-- **Repository Path**: {repo_path}
-- **Language**: {language}
-- **Changed Files**: {changed_files}
-- **Custom Rules**: {custom_rules}
-- **JIRA Context**: {jira_context}
+## Контекст
+Переменные, которые будут подставлены:
+- **Путь к репозиторию**: {repo_path}
+- **Язык**: {language}
+- **Изменённые файлы**: {changed_files}
+- **Пользовательские правила**: {custom_rules}
+- **JIRA контекст**: {jira_context}
 
-## Analysis Scope
-Detailed instructions on what to analyze and how.
+## Scope анализа
+Детальные инструкции о том, что анализировать и как.
 
-### Category 1
-Specific patterns to detect with examples.
+### Категория 1
+Конкретные паттерны для обнаружения с примерами.
 
-### Category 2
-More patterns...
+### Категория 2
+Больше паттернов...
 
-## Output Format
-JSON structure expected from CLI agent.
+## Формат вывода
+JSON структура, ожидаемая от CLI агента.
 
-## Instructions
-Step-by-step instructions for the CLI agent.
+## Инструкции
+Пошаговые инструкции для CLI агента.
 ```
 
 ---
 
-## Variable Substitution
+## Подстановка переменных
 
-### Available Variables
+### Доступные переменные
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `{repo_path}` | Local path to cloned repository | `/tmp/review/project-123-mr-456` |
-| `{language}` | Programming language | `java` |
-| `{changed_files}` | List of files modified in MR | `["src/main/java/User.java", ...]` |
-| `{custom_rules}` | Loaded custom rules content | Content of `.project-rules/` or Confluence |
-| `{jira_context}` | JIRA task description and context | Task description, acceptance criteria |
-| `{review_types}` | Selected review types | `["ERROR_DETECTION", "SECURITY_AUDIT"]` |
+| Переменная | Описание | Пример |
+|-----------|----------|---------|
+| `{repo_path}` | Локальный путь к клонированному репозиторию | `/tmp/review/project-123-mr-456` |
+| `{language}` | Язык программирования | `java` |
+| `{changed_files}` | Список файлов, изменённых в MR | `["src/main/java/User.java", ...]` |
+| `{custom_rules}` | Загруженное содержимое пользовательских правил | Содержимое `.project-rules/` или Confluence |
+| `{jira_context}` | Описание и контекст JIRA задачи | Описание задачи, критерии приёмки |
+| `{review_types}` | Выбранные типы ревью | `["ERROR_DETECTION", "SECURITY_AUDIT"]` |
 
-### Substitution Process
+### Процесс подстановки
 
-1. **Load Prompt**: Read prompt file from `prompts/{agent}/{review_type}.md`
-2. **Gather Context**: Collect variable values from request and environment
-3. **Substitute**: Replace `{variable}` placeholders with actual values
-4. **Send to CLI**: Pass processed prompt to CLI agent
+1. **Загрузить промпт**: Прочитать файл промпта из `prompts/{agent}/{review_type}.md`
+2. **Собрать контекст**: Собрать значения переменных из запроса и окружения
+3. **Подставить**: Заменить placeholder'ы `{variable}` на фактические значения
+4. **Отправить CLI**: Передать обработанный промпт CLI агенту
 
-### Example Substitution
+### Пример подстановки
 
-**Original Prompt**:
+**Оригинальный промпт**:
 ```markdown
-## Context
-- **Repository Path**: {repo_path}
-- **Changed Files**: {changed_files}
+## Контекст
+- **Путь к репозиторию**: {repo_path}
+- **Изменённые файлы**: {changed_files}
 ```
 
-**After Substitution**:
+**После подстановки**:
 ```markdown
-## Context
-- **Repository Path**: /tmp/review/project-123-mr-456
-- **Changed Files**: ["src/main/java/UserService.java", "src/main/java/OrderService.java"]
+## Контекст
+- **Путь к репозиторию**: /tmp/review/project-123-mr-456
+- **Изменённые файлы**: ["src/main/java/UserService.java", "src/main/java/OrderService.java"]
 ```
 
 ---
 
-## Prompt Types
+## Типы промптов
 
-### 1. Core Prompts (Cline)
+### 1. Основные промпты (Cline)
 
 #### error_detection.md
-**Purpose**: Identify bugs and potential crashes  
-**Key Checks**:
-- NullPointerException risks
-- Exception handling issues
-- Resource leaks
-- Type safety violations
+**Назначение**: Идентифицировать баги и потенциальные падения  
+**Ключевые проверки**:
+- Риски NullPointerException
+- Проблемы обработки исключений
+- Утечки ресурсов
+- Нарушения типобезопасности
 
-**Output**: JSON with issues, severity, and suggestions
+**Вывод**: JSON с проблемами, серьёзностью и предложениями
 
 ---
 
 #### best_practices.md
-**Purpose**: Enforce SOLID, Spring conventions, modern Java  
-**Key Checks**:
-- SOLID principle violations
-- Spring Boot anti-patterns
-- DRY violations
-- KISS compliance
-- Modern Java feature opportunities
+**Назначение**: Применять SOLID, конвенции Spring, современный Java  
+**Ключевые проверки**:
+- Нарушения принципов SOLID
+- Spring Boot анти-паттерны
+- Нарушения DRY
+- Соответствие KISS
+- Возможности современных Java функций
 
-**Output**: JSON with best practice violations and refactoring suggestions
+**Вывод**: JSON с нарушениями лучших практик и предложениями по рефакторингу
 
 ---
 
 #### refactoring.md
-**Purpose**: Suggest code improvements for maintainability  
-**Key Checks**:
-- Circular dependencies
-- Business logic in controllers
-- Code smells (long methods, deep nesting)
-- Complex boolean expressions
+**Назначение**: Предлагать улучшения кода для поддерживаемости  
+**Ключевые проверки**:
+- Циклические зависимости
+- Бизнес-логика в контроллерах
+- Code smells (длинные методы, глубокая вложенность)
+- Сложные boolean выражения
 
-**Output**: JSON with refactoring suggestions classified as SIGNIFICANT or MINOR
+**Вывод**: JSON с предложениями по рефакторингу, классифицированными как SIGNIFICANT или MINOR
 
 ---
 
 #### security_audit.md
-**Purpose**: Identify security vulnerabilities  
-**Key Checks**:
+**Назначение**: Идентифицировать уязвимости безопасности  
+**Ключевые проверки**:
 - SQL injection
 - XSS
 - CSRF
-- Authentication/authorization issues
-- Hardcoded credentials
-- Weak cryptography
+- Проблемы аутентификации/авторизации
+- Захардкоженные credentials
+- Слабая криптография
 
-**Output**: JSON with vulnerabilities, severity, CWE references, attack scenarios
+**Вывод**: JSON с уязвимостями, серьёзностью, CWE ссылками, сценариями атак
 
 ---
 
 #### documentation.md
-**Purpose**: Generate JavaDoc and code comments  
-**Key Checks**:
-- Missing JavaDoc on public APIs
-- Incomplete method documentation
-- Complex logic needing comments
+**Назначение**: Генерировать JavaDoc и комментарии к коду  
+**Ключевые проверки**:
+- Отсутствующий JavaDoc на публичных API
+- Неполная документация методов
+- Сложная логика, требующая комментариев
 
-**Output**: JSON with generated documentation + git commit to source branch
+**Вывод**: JSON с сгенерированной документацией + git commit в source branch
 
 ---
 
-### 2. Specialized Prompts (Additional)
+### 2. Специализированные промпты (Additional)
 
 #### performance.md
-**Purpose**: Identify performance issues  
-**Focus**: N+1 queries, caching, stream optimization, connection pooling
+**Назначение**: Идентифицировать проблемы производительности  
+**Фокус**: N+1 запросы, кэширование, оптимизация потоков, connection pooling
 
 #### architecture.md
-**Purpose**: Verify architectural patterns  
-**Focus**: Circuit breakers, API design, microservices patterns, DTOs
+**Назначение**: Проверять архитектурные паттерны  
+**Фокус**: Circuit breakers, дизайн API, паттерны микросервисов, DTO
 
 #### transaction_management.md
-**Purpose**: Verify @Transactional usage  
-**Focus**: Placement, propagation, isolation levels
+**Назначение**: Проверять использование @Transactional  
+**Фокус**: Размещение, propagation, уровни изоляции
 
 #### concurrency.md
-**Purpose**: Identify concurrency issues  
-**Focus**: Race conditions, thread safety, @Async usage
+**Назначение**: Идентифицировать проблемы конкурентности  
+**Фокус**: Race conditions, потокобезопасность, использование @Async
 
 #### database_optimization.md
-**Purpose**: Optimize database queries  
-**Focus**: Query optimization, lazy/eager loading, batch operations
+**Назначение**: Оптимизировать запросы к БД  
+**Фокус**: Оптимизация запросов, lazy/eager loading, batch операции
 
 ---
 
-### 3. Simplified Prompts (Qwen)
+### 3. Упрощённые промпты (Qwen)
 
-Qwen Code CLI uses simplified versions of core prompts:
-- Focused on essential patterns
-- Less verbose instructions
-- Faster execution
+Qwen Code CLI использует упрощённые версии основных промптов:
+- Сфокусированы на ключевых паттернах
+- Менее многословные инструкции
+- Более быстрое выполнение
 
 ---
 
-### 4. TODO Prompts (Future Features)
+### 4. TODO промпты (Будущие функции)
 
 #### jira_task_matcher.md
-**Purpose**: Verify MR implements JIRA task requirements  
-**Status**: TODO - requires JIRA API integration
+**Назначение**: Проверять, что MR реализует требования JIRA задачи  
+**Статус**: TODO - требуется интеграция JIRA API
 
 #### changelog_generator.md
-**Purpose**: Generate CHANGELOG.md entries  
-**Status**: TODO - requires git log parsing
+**Назначение**: Генерировать записи CHANGELOG.md  
+**Статус**: TODO - требуется парсинг git log
 
 ---
 
-## Customizing Prompts
+## Кастомизация промптов
 
-### Project-Specific Prompts
+### Промпты конкретного проекта
 
-Create custom prompts in `.project-prompts/` directory (not yet implemented, future feature):
+Создайте пользовательские промпты в директории `.project-prompts/` (ещё не реализовано, будущая функция):
 
 ```
 your-project/
 ├── .project-prompts/
-│   ├── error_detection.md      # Override default
-│   └── custom_security.md      # Additional prompt
+│   ├── error_detection.md      # Переопределить по умолчанию
+│   └── custom_security.md      # Дополнительный промпт
 ├── src/
 └── pom.xml
 ```
 
-### Modifying Default Prompts
+### Модификация промптов по умолчанию
 
-1. **Clone Repository**: Get the review service repository
-2. **Edit Prompt**: Modify file in `prompts/` directory
-3. **Test**: Run review on sample MR
-4. **Deploy**: Rebuild Docker image or update mounted volume
+1. **Клонировать репозиторий**: Получить репозиторий review service
+2. **Редактировать промпт**: Изменить файл в директории `prompts/`
+3. **Тестировать**: Запустить ревью на примерном MR
+4. **Развернуть**: Пересобрать Docker image или обновить смонтированный volume
 
 ---
 
-## Prompt Best Practices
+## Лучшие практики промптов
 
-### 1. Be Specific
-❌ **Bad**: "Check for errors"  
-✅ **Good**: "Check for NullPointerException risks where methods are called on potentially null objects without null checks"
+### 1. Будьте конкретны
+❌ **Плохо**: "Проверьте на ошибки"  
+✅ **Хорошо**: "Проверьте риски NullPointerException, где методы вызываются на потенциально null объектах без null проверок"
 
-### 2. Provide Examples
-Always include:
-- BAD example (anti-pattern)
-- GOOD example (correct pattern)
-- Explanation of why
+### 2. Предоставляйте примеры
+Всегда включайте:
+- ПЛОХОЙ пример (анти-паттерн)
+- ХОРОШИЙ пример (правильный паттерн)
+- Объяснение почему
 
-### 3. Structured Output
-Define exact JSON structure expected:
+### 3. Структурированный вывод
+Определите точную JSON структуру:
 ```json
 {
   "review_type": "ERROR_DETECTION",
@@ -264,71 +264,71 @@ Define exact JSON structure expected:
 }
 ```
 
-### 4. Actionable Suggestions
-Each issue should include:
-- What's wrong
-- Why it's wrong
-- How to fix it
-- Code example of fix
+### 4. Действенные предложения
+Каждая проблема должна включать:
+- Что не так
+- Почему это не так
+- Как это исправить
+- Пример кода исправления
 
-### 5. Context-Aware
-Use variables to provide context:
-- `{custom_rules}` for project-specific standards
-- `{jira_context}` to understand intent
-- `{changed_files}` to focus scope
+### 5. Контекстно-зависимые
+Используйте переменные для предоставления контекста:
+- `{custom_rules}` для стандартов, специфичных для проекта
+- `{jira_context}` для понимания намерений
+- `{changed_files}` для фокусировки scope
 
 ---
 
-## Integration with Rules
+## Интеграция с правилами
 
-Prompts reference rules from `rules/java-spring-boot/`:
+Промпты ссылаются на правила из `rules/java-spring-boot/`:
 
 ```markdown
-## Analysis Scope
-Perform checks according to rules defined in {custom_rules}.
+## Scope анализа
+Выполните проверки согласно правилам, определённым в {custom_rules}.
 
-### 1. NullPointerException Prevention
-Refer to rules/java-spring-boot/error_detection.md Rule 1 for patterns.
+### 1. Предотвращение NullPointerException
+Обратитесь к rules/java-spring-boot/error_detection.md Правило 1 для паттернов.
 ```
 
-Rules provide:
-- Detailed pattern examples
-- Severity levels
-- Auto-fix capability
+Правила предоставляют:
+- Детальные примеры паттернов
+- Уровни серьёзности
+- Возможность автоисправления
 
-Prompts provide:
-- Instructions for CLI agent
-- Output format
-- Processing workflow
-
----
-
-## Troubleshooting
-
-### Issue: CLI Agent Not Following Prompt
-
-**Possible Causes**:
-1. Prompt too vague or ambiguous
-2. JSON output format not clearly specified
-3. Too many instructions (information overload)
-
-**Solutions**:
-1. Make instructions more specific and actionable
-2. Provide exact JSON schema with examples
-3. Break complex prompts into focused sections
+Промпты предоставляют:
+- Инструкции для CLI агента
+- Формат вывода
+- Рабочий процесс обработки
 
 ---
 
-### Issue: Variable Not Substituted
+## Устранение неполадок
 
-**Check**:
-1. Variable name matches exactly (case-sensitive)
-2. Variable value is provided in ReviewRequest
-3. ReviewService populates variable correctly
+### Проблема: CLI агент не следует промпту
 
-**Debug**:
+**Возможные причины**:
+1. Промпт слишком расплывчатый или двусмысленный
+2. JSON формат вывода не чётко указан
+3. Слишком много инструкций (информационная перегрузка)
+
+**Решения**:
+1. Сделайте инструкции более конкретными и действенными
+2. Предоставьте точную JSON схему с примерами
+3. Разбейте сложные промпты на сфокусированные секции
+
+---
+
+### Проблема: Переменная не подставлена
+
+**Проверьте**:
+1. Имя переменной совпадает точно (регистрозависимое)
+2. Значение переменной предоставлено в ReviewRequest
+3. ReviewService правильно заполняет переменную
+
+**Дебаг**:
 ```python
-# In ReviewService
+# В ReviewService
 processed_prompt = self.substitute_variables(prompt, {
     'repo_path': repo_path,
     'language': language,
@@ -340,75 +340,75 @@ print(f"Processed prompt: {processed_prompt[:500]}")
 
 ---
 
-### Issue: Inconsistent Results
+### Проблема: Непостоянные результаты
 
-**Possible Causes**:
-1. Prompt too open-ended (allows interpretation)
-2. Examples not comprehensive
-3. Output format not strictly defined
+**Возможные причины**:
+1. Промпт слишком открытый (допускает интерпретацию)
+2. Примеры не исчерпывающие
+3. Формат вывода не строго определён
 
-**Solutions**:
-1. Add more specific instructions
-2. Provide examples for edge cases
-3. Use JSON schema validation
-
----
-
-## Performance Considerations
-
-### Prompt Length
-- **Cline**: Can handle longer prompts (10K+ tokens)
-- **Qwen**: Prefer shorter, focused prompts (<5K tokens)
-
-### Variable Substitution Overhead
-- Minimal impact (<10ms per substitution)
-- Variables are substituted once before sending to CLI
-
-### Caching
-- Prompts are loaded from disk each time (not cached)
-- Consider caching for high-frequency reviews (future optimization)
+**Решения**:
+1. Добавьте более конкретные инструкции
+2. Предоставьте примеры для граничных случаев
+3. Используйте валидацию JSON схемы
 
 ---
 
-## Version Control
+## Соображения производительности
 
-### Tracking Changes
-- All prompts are version-controlled in git
-- Use meaningful commit messages when updating prompts
-- Tag releases for major prompt changes
+### Длина промпта
+- **Cline**: Может обрабатывать более длинные промпты (10K+ токенов)
+- **Qwen**: Предпочитайте более короткие, сфокусированные промпты (<5K токенов)
 
-### Rollback Strategy
-If new prompt causes issues:
-1. Revert git commit
-2. Rebuild Docker image or update volume
-3. Re-run affected reviews
+### Overhead подстановки переменных
+- Минимальное влияние (<10ms на подстановку)
+- Переменные подставляются один раз перед отправкой в CLI
+
+### Кэширование
+- Промпты загружаются с диска каждый раз (не кэшируются)
+- Рассмотрите кэширование для высокочастотных ревью (будущая оптимизация)
 
 ---
 
-## Examples
+## Контроль версий
 
-### Example 1: Adding New Check to Error Detection
+### Отслеживание изменений
+- Все промпты находятся под контролем версий в git
+- Используйте осмысленные commit messages при обновлении промптов
+- Тегируйте релизы для важных изменений промптов
 
-**Goal**: Add check for improper use of `@Async` on methods returning void
+### Стратегия отката
+Если новый промпт вызывает проблемы:
+1. Откатите git commit
+2. Пересоберите Docker image или обновите volume
+3. Перезапустите затронутые ревью
 
-**Steps**:
-1. Open `prompts/cline/error_detection.md`
-2. Add new section:
+---
+
+## Примеры
+
+### Пример 1: Добавление новой проверки в обнаружение ошибок
+
+**Цель**: Добавить проверку для неправильного использования `@Async` на методах, возвращающих void
+
+**Шаги**:
+1. Откройте `prompts/cline/error_detection.md`
+2. Добавьте новую секцию:
 ```markdown
-### 8. @Async Method Return Type
+### 8. Тип возвращаемого значения @Async метода
 
-**Check for**: @Async methods returning void without proper error handling
+**Проверить**: @Async методы, возвращающие void без правильной обработки ошибок
 
-**Anti-pattern**:
+**Анти-паттерн**:
 ```java
 @Async
 public void sendEmail(String to, String subject) {
-    // If exception thrown, it's silently swallowed!
+    // Если выброшено исключение, оно тихо проглатывается!
     emailService.send(to, subject);
 }
 ```
 
-**Correct pattern**:
+**Правильный паттерн**:
 ```java
 @Async
 public CompletableFuture<Void> sendEmail(String to, String subject) {
@@ -418,35 +418,35 @@ public CompletableFuture<Void> sendEmail(String to, String subject) {
 }
 ```
 ```
-3. Test on sample code
-4. Deploy updated prompt
+3. Протестируйте на примерном коде
+4. Разверните обновлённый промпт
 
 ---
 
-### Example 2: Creating Custom Prompt for Team
+### Пример 2: Создание пользовательского промпта для команды
 
-**Goal**: Add company-specific security check
+**Цель**: Добавить проверку безопасности, специфичную для компании
 
-**Steps**:
-1. Create `prompts/cline/company_security.md`
-2. Define company-specific patterns
-3. Update ReviewService to load custom prompt
-4. Add to review types enum
-
----
-
-## Future Enhancements
-
-### Planned Features
-1. **Prompt Templates**: Reusable prompt components
-2. **Dynamic Prompts**: Adjust based on project type
-3. **Prompt Testing**: Automated testing of prompt effectiveness
-4. **Prompt Analytics**: Track which prompts find most issues
-5. **Multi-language Prompts**: Support for Python, JavaScript, etc.
+**Шаги**:
+1. Создайте `prompts/cline/company_security.md`
+2. Определите паттерны, специфичные для компании
+3. Обновите ReviewService для загрузки пользовательского промпта
+4. Добавьте в enum типов ревью
 
 ---
 
-## References
+## Будущие улучшения
+
+### Запланированные функции
+1. **Шаблоны промптов**: Переиспользуемые компоненты промптов
+2. **Динамические промпты**: Адаптация на основе типа проекта
+3. **Тестирование промптов**: Автоматизированное тестирование эффективности промптов
+4. **Аналитика промптов**: Отслеживание того, какие промпты находят больше проблем
+5. **Мультиязычные промпты**: Поддержка Python, JavaScript и т.д.
+
+---
+
+## Ссылки
 
 - [OpenAI Prompt Engineering Guide](https://platform.openai.com/docs/guides/prompt-engineering)
 - [Anthropic Claude Prompt Library](https://docs.anthropic.com/claude/prompt-library)
@@ -455,7 +455,5 @@ public CompletableFuture<Void> sendEmail(String to, String subject) {
 
 ---
 
-**Last Updated**: 2025-11-03  
-**Version**: 2.0.0
-
-
+**Последнее обновление**: 2025-11-03  
+**Версия**: 2.0.0

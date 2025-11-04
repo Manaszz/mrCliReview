@@ -1,45 +1,45 @@
-# New Review Types
+# Новые типы ревью
 
-This document describes the two new review types added to the AI Code Review System.
+Этот документ описывает два новых типа ревью, добавленных в систему AI Code Review.
 
 ## 1. UNIT_TEST_COVERAGE (Обязательный)
 
-### Purpose
-Automatically checks if code changes are covered by unit tests and generates missing test code.
+### Назначение
+Автоматически проверяет покрытие изменений кода юнит-тестами и генерирует недостающий код тестов.
 
-### What It Does
+### Что делает
 
-1. **Analyzes Test Coverage**:
-   - Detects all changed files using `git diff`
-   - Identifies corresponding test files
-   - Checks if new methods/classes have tests
-   - Validates test quality and completeness
+1. **Анализирует покрытие тестами**:
+   - Обнаруживает все изменённые файлы через `git diff`
+   - Идентифицирует соответствующие файлы тестов
+   - Проверяет наличие тестов для новых методов/классов
+   - Валидирует качество и полноту тестов
 
-2. **Generates Missing Tests**:
-   - Creates complete, ready-to-use test code
-   - Follows project conventions (naming, structure, base classes)
-   - Uses modern testing frameworks:
+2. **Генерирует недостающие тесты**:
+   - Создаёт полный, готовый к использованию код тестов
+   - Следует конвенциям проекта (именование, структура, базовые классы)
+   - Использует современные фреймворки тестирования:
      - JUnit 5
-     - Mockito for mocking
-     - TestContainers for integration tests
-   - Extends project's `*Base` test classes if available:
+     - Mockito для моков
+     - TestContainers для интеграционных тестов
+   - Наследуется от базовых тестовых классов проекта (если есть):
      - `JupiterBase`
      - `JupiterArtemisBase`
      - `JupiterNuxeoBase`
-     - etc.
+     - и т.д.
 
-3. **Test Scenarios Covered**:
-   - Happy path (normal execution)
-   - Edge cases (null values, empty collections, boundaries)
-   - Error cases (exceptions, validation failures)
-   - Business logic variants
+3. **Покрываемые тестовые сценарии**:
+   - Happy path (нормальное выполнение)
+   - Граничные случаи (null значения, пустые коллекции, границы)
+   - Ошибочные случаи (исключения, ошибки валидации)
+   - Варианты бизнес-логики
 
-### When It Runs
+### Когда выполняется
 
-- **By default**: Always included in review process
-- **Can be disabled**: Set `review_types` without `UNIT_TEST_COVERAGE`
+- **По умолчанию**: Всегда включён в процесс ревью
+- **Можно отключить**: Указать `review_types` без `UNIT_TEST_COVERAGE`
 
-### Output Format
+### Формат вывода
 
 ```yaml
 coverage_summary:
@@ -52,7 +52,7 @@ missing_tests:
   - file: src/main/java/com/example/UserService.java
     test_file: src/test/java/com/example/UserServiceTest.java
     status: INCOMPLETE
-    reason: "New method getUserById() has no tests"
+    reason: "Новый метод getUserById() не покрыт тестами"
     priority: HIGH
     
 generated_tests:
@@ -83,17 +83,17 @@ generated_tests:
           }
       }
     scenarios_covered:
-      - "Happy path: user exists"
-      - "Error case: user not found"
+      - "Happy path: пользователь существует"
+      - "Ошибочный случай: пользователь не найден"
 
 recommendations:
-  - "Use JupiterBase for all new tests"
-  - "Consider TestContainers for repository tests"
+  - "Используйте JupiterBase для всех новых тестов"
+  - "Рассмотрите TestContainers для тестов репозиториев"
 ```
 
-### Configuration
+### Конфигурация
 
-In API request:
+В API запросе:
 ```json
 {
   "project_id": 123,
@@ -102,7 +102,7 @@ In API request:
 }
 ```
 
-### Prompts
+### Промпты
 
 - Cline: `prompts/cline/unit_test_coverage.md`
 - Qwen: `prompts/qwen/unit_test_coverage.md`
@@ -111,122 +111,122 @@ In API request:
 
 ## 2. MEMORY_BANK (Опциональный)
 
-### Purpose
-Initializes or validates a project's Memory Bank - a structured knowledge base for AI-assisted development.
+### Назначение
+Инициализирует или валидирует Memory Bank проекта - структурированную базу знаний для AI-разработки.
 
-### What Is Memory Bank?
+### Что такое Memory Bank?
 
-Memory Bank is based on **Cursor's Memory Bank (v1.2 Final)** methodology. It's a collection of markdown files that provide comprehensive project context:
+Memory Bank основан на методологии **Cursor's Memory Bank (v1.2 Final)**. Это коллекция markdown файлов, предоставляющих полный контекст проекта:
 
-1. **projectbrief.md** - Project scope, objectives, and requirements
-2. **productContext.md** - Why the project exists, problems it solves
-3. **systemPatterns.md** - Architecture, design patterns, technical decisions
-4. **techContext.md** - Technology stack, dependencies, setup
-5. **activeContext.md** - Current work focus, recent changes, next steps
-6. **progress.md** - What works, what's left, known issues
+1. **projectbrief.md** - Scope проекта, цели и требования
+2. **productContext.md** - Почему проект существует, какие проблемы решает
+3. **systemPatterns.md** - Архитектура, паттерны проектирования, технические решения
+4. **techContext.md** - Технологический стек, зависимости, настройка
+5. **activeContext.md** - Текущий фокус работы, недавние изменения, следующие шаги
+6. **progress.md** - Что работает, что осталось сделать, известные проблемы
 
-### What It Does
+### Что делает
 
-#### If Memory Bank Exists (PRIMARY MODE):
-1. **Updates** Memory Bank with changes from current MR:
-   - **CLI Agent**:
-     - Analyzes MR changes via `git diff`
-     - Determines which files need updates
-     - **WRITES updated content** to Memory Bank files:
-       - `activeContext.md` - recent changes (MANDATORY)
-       - `systemPatterns.md` - if architectural changes
-       - `techContext.md` - if new dependencies/technologies
-       - `progress.md` - if features completed or status changed
-       - `changelog.md` - MR entry (MANDATORY)
-     - Returns `files_modified` in JSON
+#### Если Memory Bank существует (ОСНОВНОЙ РЕЖИМ):
+1. **Обновляет** Memory Bank изменениями из текущего MR:
+   - **CLI Агент**:
+     - Анализирует изменения MR через `git diff`
+     - Определяет какие файлы нужно обновить
+     - **ЗАПИСЫВАЕТ** обновлённое содержимое в файлы Memory Bank:
+       - `activeContext.md` - недавние изменения (ОБЯЗАТЕЛЬНО)
+       - `systemPatterns.md` - если есть архитектурные изменения
+       - `techContext.md` - если добавлены новые зависимости/технологии
+       - `progress.md` - если завершены функции или изменился статус
+       - `changelog.md` - запись о MR (ОБЯЗАТЕЛЬНО)
+     - Возвращает `files_modified` в JSON
    - **FastAPI**:
-     - Detects modified files in `memory-bank/`
-     - Stages: `git add memory-bank/`
-     - Commits with `[skip ci]` tag
-     - Pushes to MR branch
+     - Обнаруживает изменённые файлы в `memory-bank/`
+     - Стейджит: `git add memory-bank/`
+     - Коммитит с тегом `[skip ci]`
+     - Пушит в ветку MR
 
-2. **Validates** all core files are present (validation mode - rare)
-3. **Reports** status of each file
-4. **Suggests** updates if files are outdated or incomplete
+2. **Валидирует** наличие всех core файлов (режим валидации - редко)
+3. **Отчитывается** о статусе каждого файла
+4. **Предлагает** обновления если файлы устарели или неполные
 
-#### If Memory Bank Doesn't Exist:
-1. **Analyzes** the entire project:
-   - Repository structure
-   - Build configuration (pom.xml, build.gradle)
-   - Main application class
-   - Key packages and modules
-   - Existing documentation
+#### Если Memory Bank не существует:
+1. **Анализирует** весь проект:
+   - Структура репозитория
+   - Конфигурация сборки (pom.xml, build.gradle)
+   - Главный класс приложения
+   - Ключевые пакеты и модули
+   - Существующая документация
 
-2. **Identifies** technologies:
-   - Programming language and version
-   - Framework (Spring Boot, etc.)
-   - Database
-   - Build tool
-   - Testing frameworks
+2. **Идентифицирует** технологии:
+   - Язык программирования и версия
+   - Фреймворк (Spring Boot и т.д.)
+   - База данных
+   - Система сборки
+   - Фреймворки тестирования
 
-3. **Creates** complete Memory Bank:
-   - All 6 core files with actual project data
-   - Optional files (changelog.md, tags_index.md)
-   - Mermaid diagrams for architecture visualization
+3. **Создаёт** полный Memory Bank:
+   - Все 6 core файлов с реальными данными проекта
+   - Опциональные файлы (changelog.md, tags_index.md)
+   - Mermaid диаграммы для визуализации архитектуры
 
-### When It Runs
+### Когда выполняется
 
-- **Explicitly requested**: Include `MEMORY_BANK` in `review_types`
-- **Optional**: Not part of default review flow
-- **Recommended Usage**:
-  - Run once per project to initialize
-  - Include in every MR to update Memory Bank automatically
-  - Run periodically for validation
+- **По явному запросу**: Включить `MEMORY_BANK` в `review_types`
+- **Опционально**: Не входит в стандартный процесс ревью
+- **Рекомендуемое использование**:
+  - Запустить один раз для инициализации проекта
+  - Включать в каждый MR для автоматического обновления Memory Bank
+  - Запускать периодически для валидации
 
-### Operating Modes
+### Режимы работы
 
-1. **Update Mode (PRIMARY)**: When Memory Bank exists
-   - Analyzes MR changes
-   - Updates relevant Memory Bank files
-   - Commits changes to MR branch
-   - Use for: Every MR
+1. **Режим обновления (ОСНОВНОЙ)**: Когда Memory Bank существует
+   - Анализирует изменения MR
+   - Обновляет соответствующие файлы Memory Bank
+   - Коммитит изменения в ветку MR
+   - Использовать для: Каждый MR
 
-2. **Initialize Mode**: When Memory Bank doesn't exist
-   - Analyzes entire project
-   - Creates complete Memory Bank structure
-   - Use for: First time setup
+2. **Режим инициализации**: Когда Memory Bank не существует
+   - Анализирует весь проект
+   - Создаёт полную структуру Memory Bank
+   - Использовать для: Первоначальная настройка
 
-3. **Validate Mode (RARE)**: When validation needed
-   - Checks structure and completeness
-   - Reports issues
-   - Use for: Periodic audits
+3. **Режим валидации (РЕДКО)**: Когда нужна валидация
+   - Проверяет структуру и полноту
+   - Отчитывается о проблемах
+   - Использовать для: Периодические аудиты
 
-### Output Format
+### Формат вывода
 
-#### Update Mode (Primary - Memory Bank Exists):
+#### Режим обновления (Основной - Memory Bank существует):
 ```yaml
 memory_bank_status: UPDATED
 mr_analyzed: 123
 files_updated:
   - file: activeContext.md
-    changes: "Added recent changes for MR !123, updated current focus"
+    changes: "Добавлены недавние изменения для MR !123, обновлён текущий фокус"
   - file: systemPatterns.md
-    changes: "Documented new authentication pattern"
+    changes: "Документирован новый паттерн аутентификации"
   - file: techContext.md
-    changes: "Added Redis dependency"
+    changes: "Добавлена зависимость Redis"
   - file: progress.md
-    changes: "Marked user authentication feature as completed"
+    changes: "Отмечена как завершённая функция аутентификации пользователей"
   - file: changelog.md
-    changes: "Added MR !123 entry"
+    changes: "Добавлена запись о MR !123"
 
 update_summary:
   features_added:
-    - "User authentication with JWT"
+    - "Аутентификация пользователей с JWT"
   patterns_introduced:
-    - "Token-based authentication pattern"
+    - "Паттерн токен-based аутентификации"
   dependencies_added:
     - "Redis: 7.0"
   issues_resolved:
-    - "Fixed null pointer in user service"
+    - "Исправлен null pointer в user service"
 
 cli_actions:
-  - "Analyzed MR changes via git diff"
-  - "Wrote updated content to 5 Memory Bank files"
+  - "Проанализированы изменения MR через git diff"
+  - "Записано обновлённое содержимое в 5 файлов Memory Bank"
   
 fastapi_actions:
   - commit: "a1b2c3d"
@@ -235,27 +235,27 @@ fastapi_actions:
   - pushed_to: "feature/user-authentication"
 
 recommendations:
-  - "Consider adding authentication to productContext.md"
+  - "Рассмотрите добавление аутентификации в productContext.md"
 ```
 
-#### Validation Mode (Rare - Check Structure):
+#### Режим валидации (Редко - проверка структуры):
 ```yaml
 memory_bank_status: EXISTS
 validation_results:
   - file: projectbrief.md
     status: OK
-    notes: "Contains project scope and requirements"
+    notes: "Содержит scope и требования проекта"
   
   - file: systemPatterns.md
     status: INCOMPLETE
-    notes: "Missing recent architectural decisions"
+    notes: "Отсутствуют недавние архитектурные решения"
 
 recommendations:
-  - "Update activeContext.md to reflect this MR"
-  - "Add database optimization patterns to systemPatterns.md"
+  - "Обновите activeContext.md для отражения этого MR"
+  - "Добавьте паттерны оптимизации БД в systemPatterns.md"
 ```
 
-#### Initialize Mode (New Memory Bank):
+#### Режим инициализации (Новый Memory Bank):
 ```yaml
 memory_bank_status: CREATED
 files_created:
@@ -269,70 +269,70 @@ files_created:
   - tags_index.md
 
 analysis_summary:
-  project_type: "REST API Microservice"
+  project_type: "REST API Микросервис"
   primary_technology: "Spring Boot 3.2"
-  architecture_pattern: "Layered Architecture"
+  architecture_pattern: "Слоистая архитектура"
   key_features:
-    - "Multi-agent code review system"
-    - "GitLab integration"
-    - "Automated MR creation"
+    - "Мультиагентная система code review"
+    - "Интеграция с GitLab"
+    - "Автоматическое создание MR"
   confidence: HIGH
 
 recommendations:
-  - "Review and refine projectbrief.md with product owner"
-  - "Update activeContext.md as work progresses"
+  - "Просмотрите и уточните projectbrief.md с product owner"
+  - "Обновляйте activeContext.md по мере работы"
 ```
 
-### Integration with Code Review
+### Интеграция с Code Review
 
-Memory Bank provides continuous context across all reviews:
+Memory Bank обеспечивает непрерывный контекст для всех ревью:
 
-1. **System Prompt** instructs all agents to check for `memory-bank/` directory
-2. If found, agents read key files for context:
-   - `projectbrief.md` - Project scope and objectives
-   - `systemPatterns.md` - Architectural decisions
-   - `techContext.md` - Technology stack
-   - `activeContext.md` - Current focus
-3. Recommendations align with documented decisions
-4. **Memory Bank Agent** keeps it updated with each MR
+1. **System Prompt** инструктирует всех агентов проверять наличие директории `memory-bank/`
+2. Если найдена, агенты читают ключевые файлы для контекста:
+   - `projectbrief.md` - Scope и цели проекта
+   - `systemPatterns.md` - Архитектурные решения
+   - `techContext.md` - Технологический стек
+   - `activeContext.md` - Текущий фокус
+3. Рекомендации выравниваются с задокументированными решениями
+4. **Memory Bank агент** поддерживает актуальность с каждым MR
 
-### Auto-Update Workflow
+### Workflow автообновления
 
-When MEMORY_BANK agent runs on an MR:
+Когда MEMORY_BANK агент запускается на MR:
 
 ```mermaid
 graph TB
-    A[MR Received] --> B[FastAPI: Clone Repo]
-    B --> C[FastAPI: Run MEMORY_BANK Agent]
-    C --> D{memory-bank/ exists?}
+    A[MR получен] --> B[FastAPI: Клонирование репо]
+    B --> C[FastAPI: Запуск MEMORY_BANK агента]
+    C --> D{memory-bank/ существует?}
     
-    D -->|Yes| E[CLI: Analyze MR Changes]
-    E --> F[CLI: WRITE Updated Files]
-    F --> G[FastAPI: Detect Changes]
+    D -->|Да| E[CLI: Анализ изменений MR]
+    E --> F[CLI: ЗАПИСЬ обновлённых файлов]
+    F --> G[FastAPI: Обнаружение изменений]
     G --> H[FastAPI: git commit + push]
     
-    D -->|No| I[CLI: Analyze Project]
-    I --> J[CLI: CREATE Memory Bank]
+    D -->|Нет| I[CLI: Анализ проекта]
+    I --> J[CLI: СОЗДАНИЕ Memory Bank]
     J --> G
 ```
 
-**Workflow Details**:
-1. **CLI Agent** (Cline/Qwen):
-   - Analyzes MR changes
-   - WRITES updated Memory Bank files
-   - Returns JSON with `files_modified`
+**Детали workflow**:
+1. **CLI Агент** (Cline/Qwen):
+   - Анализирует изменения MR
+   - ЗАПИСЫВАЕТ обновлённые файлы Memory Bank
+   - Возвращает JSON с `files_modified`
 
 2. **FastAPI**:
-   - Detects changes via `git status`
-   - Stages: `git add memory-bank/`
-   - Commits: `docs: Update Memory Bank for MR !{mr_iid} [skip ci]`
-   - Pushes: To MR source branch
+   - Обнаруживает изменения через `git status`
+   - Стейджит: `git add memory-bank/`
+   - Коммитит: `docs: Update Memory Bank for MR !{mr_iid} [skip ci]`
+   - Пушит: В source branch MR
    
-**Important**: CLI agents don't have Git access - they only analyze and write files. FastAPI handles all Git operations (commit, push).
+**Важно**: CLI агенты не имеют доступа к Git - они только анализируют и пишут файлы. FastAPI обрабатывает все Git операции (commit, push).
 
-### Configuration
+### Конфигурация
 
-In API request:
+В API запросе:
 ```json
 {
   "project_id": 123,
@@ -341,7 +341,7 @@ In API request:
 }
 ```
 
-Or combined with other reviews:
+Или в комбинации с другими ревью:
 ```json
 {
   "project_id": 123,
@@ -350,31 +350,30 @@ Or combined with other reviews:
 }
 ```
 
-### Prompts
+### Промпты
 
 - Cline: `prompts/cline/memory_bank.md`
 - Qwen: `prompts/qwen/memory_bank.md`
 
-### Benefits
+### Преимущества
 
-1. **Faster Onboarding**: New developers understand project quickly
-2. **Consistent Reviews**: AI agents use project context for better recommendations
-3. **Knowledge Preservation**: Architectural decisions and rationale are documented
-4. **Living Documentation**: Updates as project evolves
-5. **AI-Friendly**: Structured format optimized for AI comprehension
+1. **Быстрый онбординг**: Новые разработчики быстро понимают проект
+2. **Консистентные ревью**: AI агенты используют контекст проекта для лучших рекомендаций
+3. **Сохранение знаний**: Архитектурные решения и их обоснование документируются
+4. **Живая документация**: Обновляется по мере эволюции проекта
+5. **AI-friendly**: Структурированный формат оптимизирован для понимания AI
 
 ---
 
-## Summary
+## Резюме
 
-| Review Type | Required | Purpose | When to Use |
-|------------|----------|---------|-------------|
-| **UNIT_TEST_COVERAGE** | ✅ Yes | Ensure code changes have tests | Every MR |
-| **MEMORY_BANK** | ❌ Optional | Initialize/validate project knowledge base | Once per project, then periodically |
+| Тип ревью | Обязательный | Назначение | Когда использовать |
+|------------|--------------|------------|-------------------|
+| **UNIT_TEST_COVERAGE** | ✅ Да | Обеспечить покрытие изменений кода тестами | Каждый MR |
+| **MEMORY_BANK** | ❌ Опционально | Инициализация/валидация базы знаний проекта | Один раз для проекта, затем периодически |
 
-## Related Documentation
+## Связанная документация
 
-- [System Prompt Guide](SYSTEM_PROMPT_GUIDE.md) - How system prompt works
-- [Prompts Guide](PROMPTS_GUIDE.md) - How to customize prompts
-- Memory Bank Template: See `prompts/cline/memory_bank.md` or `prompts/qwen/memory_bank.md`
-
+- [Руководство по System Prompt](SYSTEM_PROMPT_GUIDE.md) - Как работает системный промпт
+- [Руководство по Prompts](PROMPTS_GUIDE.md) - Как кастомизировать промпты
+- Шаблон Memory Bank: См. `prompts/cline/memory_bank.md` или `prompts/qwen/memory_bank.md`

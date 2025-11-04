@@ -556,15 +556,102 @@ services:
         max_attempts: 3
 ```
 
-## 📚 Документация
+## 📚 Глоссарий документации
 
-- [Полное руководство по развертыванию](docs/DEPLOYMENT_GUIDE_RU.md)
-- [Обработка ошибок и мониторинг](docs/ERROR_HANDLING_RU.md)
-- [Архитектура системы](docs/ARCHITECTURE_RU.md)
-- [PRD - Product Requirements Document](docs/PRD.md)
-- [Настройка CLI инструментов](docs/CLI_SETUP.md)
-- [Кастомизация правил](docs/RULES_CUSTOMIZATION.md)
-- [Интеграция с n8n](docs/N8N_WORKFLOW.md)
+### Основная документация
+
+| Документ | Описание | Язык |
+|----------|----------|------|
+| [README.md](README.md) | Основное описание проекта, быстрый старт | 🇷🇺 RU |
+| [PRD_RU.md](docs/PRD_RU.md) | Полный документ требований к продукту | 🇷🇺 RU |
+| [PRD.md](docs/PRD.md) | Product Requirements Document | 🇬🇧 EN |
+| [SUMMARY.md](SUMMARY.md) | Краткая сводка проекта | 🇷🇺 RU |
+
+### Архитектура и развёртывание
+
+| Документ | Описание | Язык |
+|----------|----------|------|
+| [ARCHITECTURE_RU.md](docs/ARCHITECTURE_RU.md) | Архитектура системы | 🇷🇺 RU |
+| [DEPLOYMENT_GUIDE_RU.md](docs/DEPLOYMENT_GUIDE_RU.md) | Полное руководство по развёртыванию | 🇷🇺 RU |
+| [AIR_GAP_TRANSFER.md](docs/AIR_GAP_TRANSFER.md) | Руководство по air-gap передаче для изолированных сред | 🇷🇺 RU |
+| [OFFLINE_BUILD.md](docs/OFFLINE_BUILD.md) | Сборка и развёртывание в offline режиме | 🇷🇺 RU |
+| [OFFLINE_QUICK_START.md](OFFLINE_QUICK_START.md) | Быстрый старт для offline установки | 🇷🇺 RU |
+| [DOCKER_OFFLINE_PROBLEM.md](docs/DOCKER_OFFLINE_PROBLEM.md) | Решение проблем Docker в offline режиме | 🇷🇺 RU |
+
+### Настройка и конфигурация
+
+| Документ | Описание | Язык |
+|----------|----------|------|
+| [CLI_SETUP.md](docs/CLI_SETUP.md) | Настройка CLI инструментов (Cline, Qwen) | 🇬🇧 EN |
+| [RULES_CUSTOMIZATION.md](docs/RULES_CUSTOMIZATION.md) | Кастомизация правил ревью | 🇷🇺 RU |
+| [PROMPTS_GUIDE.md](docs/PROMPTS_GUIDE.md) | Руководство по системе промптов | 🇷🇺 RU |
+| [SYSTEM_PROMPT_GUIDE.md](docs/SYSTEM_PROMPT_GUIDE.md) | Руководство по системному промпту | 🇬🇧 EN |
+| [NEW_REVIEW_TYPES.md](docs/NEW_REVIEW_TYPES.md) | Документация новых типов ревью (UNIT_TEST_COVERAGE, MEMORY_BANK) | 🇷🇺 RU |
+
+### CLI агенты и ответственность
+
+| Документ | Описание | Язык |
+|----------|----------|------|
+| [CLI_RESPONSIBILITY_QUICK.md](CLI_RESPONSIBILITY_QUICK.md) | Быстрая справка по разделению ответственности | ru RU |
+| [CLI_RESPONSIBILITY_SEPARATION.md](docs/CLI_RESPONSIBILITY_SEPARATION.md) | Разделение ответственностей CLI и FastAPI | ru RU |
+| [CLI_ACCESS_QUICK.md](CLI_ACCESS_QUICK.md) | Быстрая справка по CLI доступу | ru RU |
+
+### Интеграции и workflow
+
+| Документ | Описание | Язык |
+|----------|----------|------|
+| [N8N_WORKFLOW.md](docs/N8N_WORKFLOW.md) | Интеграция с n8n workflow | 🇬🇧 EN |
+| [ERROR_HANDLING_RU.md](docs/ERROR_HANDLING_RU.md) | Обработка ошибок и мониторинг | 🇷🇺 RU |
+
+### Примеры и шаблоны
+
+| Файл | Описание |
+|------|----------|
+| [env.example.annotated](env.example.annotated) | Аннотированный пример .env файла |
+| [docker-compose.yml](docker-compose.yml) | Docker Compose конфигурация для стандартного развёртывания |
+| [docker-compose.offline.yml](docker-compose.offline.yml) | Docker Compose конфигурация для offline режима |
+| [deployment/kubernetes/](deployment/kubernetes/) | Kubernetes манифесты для продакшн развёртывания |
+
+### Правила и промпты
+
+| Директория | Описание |
+|------------|----------|
+| [rules/java-spring-boot/](rules/java-spring-boot/) | Правила ревью по умолчанию для Java Spring Boot |
+| [prompts/cline/](prompts/cline/) | Промпты для Cline CLI агента |
+| [prompts/qwen/](prompts/qwen/) | Промпты для Qwen Code CLI агента |
+| [prompts/additional/](prompts/additional/) | Дополнительные специализированные промпты |
+| [prompts/todo/](prompts/todo/) | Промпты для будущих TODO функций |
+
+### Исследования
+
+| Документ | Описание |
+|----------|----------|
+| [research/Qwen Code для ревью merge requests_ полный анализ.md](research/Qwen%20Code%20для%20ревью%20merge%20requests_%20полный%20анализ.md) | Анализ Qwen Code для MR ревью |
+| [research/Возможно ли реализовать, чтоб self-hosted n8n на сервере управлял CLI агентом.md](research/Возможно%20ли%20реализовать,%20чтоб%20self-hoted%20n8n%20%20на%20с.md) | Исследование self-hosted n8n |
+
+---
+
+## 📖 Быстрые ссылки
+
+### Для начала работы
+1. 🚀 [README.md](README.md) - Старт здесь
+2. 📦 [OFFLINE_QUICK_START.md](OFFLINE_QUICK_START.md) - Offline установка
+3. 🐳 [DEPLOYMENT_GUIDE_RU.md](docs/DEPLOYMENT_GUIDE_RU.md) - Полное развёртывание
+
+### Для настройки
+1. ⚙️ [CLI_SETUP.md](docs/CLI_SETUP.md) - Настройка CLI
+2. 📝 [RULES_CUSTOMIZATION.md](docs/RULES_CUSTOMIZATION.md) - Свои правила
+3. 💬 [PROMPTS_GUIDE.md](docs/PROMPTS_GUIDE.md) - Настройка промптов
+
+### Для понимания системы
+1. 🏗️ [ARCHITECTURE_RU.md](docs/ARCHITECTURE_RU.md) - Архитектура
+2. 📋 [PRD_RU.md](docs/PRD_RU.md) - Полное описание продукта
+3. 🤖 [NEW_REVIEW_TYPES.md](docs/NEW_REVIEW_TYPES.md) - Новые возможности
+
+### Для production
+1. ☸️ [deployment/kubernetes/](deployment/kubernetes/) - Kubernetes манифесты
+2. 🔒 [AIR_GAP_TRANSFER.md](docs/AIR_GAP_TRANSFER.md) - Изолированные среды
+3. 🚨 [ERROR_HANDLING_RU.md](docs/ERROR_HANDLING_RU.md) - Обработка ошибок
 
 ## 🚀 Быстрый старт
 

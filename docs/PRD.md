@@ -15,12 +15,15 @@ Create an intelligent, automated code review system that leverages state-of-the-
 
 ### Goals
 
-1. **Comprehensive Coverage**: Support 11 specialized review types covering errors, security, performance, architecture, and best practices
+1. **Comprehensive Coverage**: Support 13 specialized review types covering errors, security, performance, architecture, best practices, test coverage, and knowledge management
 2. **Flexibility**: Allow selection of specific review types based on context and urgency
 3. **Dual Agent Architecture**: Provide choice between Cline CLI (DeepSeek V3.1 Terminus) and Qwen Code CLI (Qwen3-Coder) for different use cases
-4. **Smart MR Creation**: Automatically generate fix MRs with intelligent separation of critical fixes from refactoring suggestions
-5. **Customizability**: Support project-specific rules and conventions through hierarchical rule system
-6. **Production Ready**: Docker Compose deployment with Kubernetes support and air-gap transfer capability
+4. **Smart MR Creation**: Automatically generate fix MRs with intelligent separation of critical fixes from refactoring suggestions, with proper branch strategy (branching from MR source, not target)
+5. **Test Coverage Automation**: Automatically generate missing unit tests following project conventions (JUnit5, Mockito, Testcontainers)
+6. **Knowledge Management**: Auto-update project Memory Bank with each MR for living documentation
+7. **Customizability**: Support project-specific rules and conventions through hierarchical rule system
+8. **Context-Aware Reviews**: System prompt with Memory Bank integration for context-driven recommendations
+9. **Production Ready**: Docker Compose deployment with Kubernetes support and air-gap transfer capability
 
 ### Target Users
 
@@ -106,11 +109,31 @@ GitLab Comments & Notifications
 - Supports refactoring suggestions that span multiple files
 - Cleanup after review maintains isolation
 
+#### 5. System Prompt with Memory Bank Integration
+
+**Decision**: Use a global system prompt that is prepended to all review requests, with built-in Memory Bank awareness.
+
+**Rationale**:
+- Ensures consistent code style standards across all reviews (Lombok usage, Java conventions, etc.)
+- Loaded once at startup and cached for performance
+- Instructs agents to check for and read `memory-bank/` directory for project context
+- Provides base rules without passing them in every request
+- Enables context-aware recommendations aligned with project decisions
+- Reduces prompt size for individual requests
+
+**System Prompt Features**:
+- Java formatting and Spring Boot conventions
+- Lombok usage guidelines
+- Code smell detection criteria
+- Review severity levels
+- Memory Bank integration instructions
+- Output format requirements
+
 ---
 
 ## Core Features
 
-### 1. Multi-Type Review System (11 Types)
+### 1. Multi-Type Review System (13 Types)
 
 #### ERROR_DETECTION
 **Purpose**: Identify bugs, potential crashes, and logical errors
@@ -495,10 +518,126 @@ public interface UserRepository extends JpaRepository<User, Long> {
 }
 ```
 
+#### UNIT_TEST_COVERAGE (Mandatory)
+**Purpose**: Automatically check code changes for unit test coverage and generate missing tests
+
+**Checks**:
+- Detect all changed files via `git diff`
+- Identify corresponding test files
+- Check if new methods/classes have tests
+- Validate test quality and completeness
+
+**Auto-generation**:
+- Complete, ready-to-use test code
+- Follows project conventions (naming, structure, base classes)
+- Uses modern testing frameworks:
+  - JUnit 5
+  - Mockito for mocking
+  - TestContainers for integration tests
+- Extends project's `*Base` test classes if available:
+  - `JupiterBase`, `JupiterArtemisBase`, `JupiterNuxeoBase`, etc.
+
+**Test Scenarios Covered**:
+- Happy path (normal execution)
+- Edge cases (null values, empty collections, boundaries)
+- Error cases (exceptions, validation failures)
+- Business logic variants
+
+**Example Output**:
+```java
+@ExtendWith(MockitoExtension.class)
+class UserServiceTest extends JupiterBase {
+    @Mock
+    private UserRepository userRepository;
+    
+    @InjectMocks
+    private UserService userService;
+    
+    @Test
+    void shouldReturnUserWhenIdExists() {
+        // Given
+        Long userId = 1L;
+        User expectedUser = new User(userId, "John Doe");
+        when(userRepository.findById(userId)).thenReturn(Optional.of(expectedUser));
+        
+        // When
+        User actualUser = userService.getUserById(userId);
+        
+        // Then
+        assertThat(actualUser).isNotNull();
+        assertThat(actualUser.getId()).isEqualTo(userId);
+        verify(userRepository).findById(userId);
+    }
+}
+```
+
+**When It Runs**: 
+- **By default**: Always included in review process
+- **Can be disabled**: Set `review_types` without `UNIT_TEST_COVERAGE`
+
+---
+
+#### MEMORY_BANK (Optional)
+**Purpose**: Initialize or validate project's Memory Bank - a structured knowledge base for AI-assisted development
+
+**What Is Memory Bank**:
+Based on **Cursor's Memory Bank (v1.2 Final)** methodology. A collection of markdown files providing comprehensive project context:
+
+1. **projectbrief.md** - Project scope, objectives, and requirements
+2. **productContext.md** - Why the project exists, problems it solves
+3. **systemPatterns.md** - Architecture, design patterns, technical decisions
+4. **techContext.md** - Technology stack, dependencies, setup
+5. **activeContext.md** - Current work focus, recent changes, next steps
+6. **progress.md** - What works, what's left, known issues
+
+**Operating Modes**:
+
+1. **Update Mode (PRIMARY)**: When Memory Bank exists
+   - **CLI Agent**:
+     - Analyzes MR changes via `git diff`
+     - Determines which files need updates
+     - **WRITES** updated content to Memory Bank files:
+       - `activeContext.md` - recent changes (MANDATORY)
+       - `systemPatterns.md` - if architectural changes
+       - `techContext.md` - if new dependencies/technologies
+       - `progress.md` - if features completed or status changed
+       - `changelog.md` - MR entry (MANDATORY)
+     - Returns `files_modified` in JSON
+   - **FastAPI**:
+     - Detects modified files in `memory-bank/`
+     - Stages: `git add memory-bank/`
+     - Commits with `[skip ci]` tag
+     - Pushes to MR branch
+
+2. **Initialize Mode**: When Memory Bank doesn't exist
+   - Analyzes entire project (structure, build config, main classes, packages)
+   - Identifies technologies (language, framework, database, build tool)
+   - Creates complete Memory Bank structure with all 6 core files
+
+3. **Validate Mode (RARE)**: When validation needed
+   - Checks structure and completeness
+   - Reports issues
+
+**Integration with System Prompt**:
+- System prompt instructs all agents to check for `memory-bank/` directory
+- If found, agents read key files for context before review
+- Recommendations align with documented architectural decisions
+
+**CLI/FastAPI Responsibility Split**:
+- **CLI agents**: Analyze and WRITE to files (no Git access)
+- **FastAPI**: Handles all Git operations (commit, push)
+
+**When It Runs**:
+- **Explicitly requested**: Include `MEMORY_BANK` in `review_types`
+- **Optional**: Not part of default review flow
+- **Recommended**: Include in every MR to auto-update Memory Bank
+
+---
+
 #### ALL (Default)
 **Purpose**: Execute all review types for comprehensive analysis
 
-**Behavior**: When `review_types` parameter contains `ALL` or is not specified, all 10 specialized review types are executed in parallel (based on CLI capacity: 5 for Cline, 3 for Qwen).
+**Behavior**: When `review_types` parameter contains `ALL` or is not specified, all 13 specialized review types are executed in parallel (based on CLI capacity: 5 for Cline, 3 for Qwen).
 
 ---
 
@@ -516,11 +655,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 - Comprehensive documentation generation
 
 **Task Distribution**:
-1. ERROR_DETECTION
+1. ERROR_DETECTION + UNIT_TEST_COVERAGE
 2. BEST_PRACTICES + ARCHITECTURE
 3. REFACTORING + PERFORMANCE
 4. SECURITY_AUDIT + TRANSACTION_MANAGEMENT
-5. DOCUMENTATION + CONCURRENCY + DATABASE_OPTIMIZATION
+5. DOCUMENTATION + CONCURRENCY + DATABASE_OPTIMIZATION + MEMORY_BANK
 
 #### Qwen Code CLI (Alternative)
 
@@ -533,9 +672,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 - Efficient for focused reviews
 
 **Task Distribution**:
-1. ERROR_DETECTION + SECURITY_AUDIT
+1. ERROR_DETECTION + SECURITY_AUDIT + UNIT_TEST_COVERAGE
 2. BEST_PRACTICES + PERFORMANCE
-3. REFACTORING + DATABASE_OPTIMIZATION
+3. REFACTORING + DATABASE_OPTIMIZATION + MEMORY_BANK
 
 #### Agent Selection Strategy
 
@@ -560,17 +699,40 @@ public interface UserRepository extends JpaRepository<User, Long> {
 **Timing**: Committed immediately after review completion  
 **Rationale**: Documentation improves the original MR quality without changing logic
 
+#### Unit Test Commits (Immediate)
+
+**Target**: MR source branch  
+**Content**: Generated unit tests for uncovered code  
+**Timing**: Committed immediately after UNIT_TEST_COVERAGE review  
+**Rationale**: Tests improve the original MR quality and ensure code coverage
+
+#### Memory Bank Updates (Immediate)
+
+**Target**: MR source branch  
+**Content**: Updated Memory Bank files (activeContext.md, changelog.md, etc.)  
+**Timing**: Committed immediately after MEMORY_BANK review with `[skip ci]` tag  
+**Rationale**: Keeps project knowledge base up-to-date with each change
+
 #### Fixes MR (Critical Issues)
 
-**Target**: New branch from MR source branch  
+**Target**: New branch from **MR source branch** (NOT target branch)  
+**Source Branch**: `{original_mr_source_branch}`  
+**Target Branch**: `{original_mr_source_branch}` (for MR)  
 **Content**: 
 - Critical bug fixes (NPE prevention, exception handling)
 - Security vulnerability patches
 - Performance critical issues (N+1 query fixes)
 
-**Naming**: `fix/mr-{iid}-ai-review-fixes`  
+**Branch Naming**: `fix/mr-{iid}-ai-review-fixes`  
 **Description**: Detailed list of fixes with references to original issues  
 **Auto-merge**: No (requires developer approval)
+
+**Branch Strategy Rationale**:
+Creating fix branch from MR source branch allows developer to:
+1. Review and merge fixes into their feature branch first
+2. Test the combined changes
+3. Then merge the improved feature branch to main target branch
+4. Avoids conflicts and maintains clean merge history
 
 #### Refactoring MR (Conditional)
 
@@ -581,6 +743,10 @@ if refactoring_classifier.classify(suggestions) == "SIGNIFICANT":
 else:
     include_in_fixes_mr()
 ```
+
+**Target**: New branch from **MR source branch** (NOT target branch)  
+**Source Branch**: `{original_mr_source_branch}`  
+**Target Branch**: `{original_mr_source_branch}` (for MR)
 
 **SIGNIFICANT Criteria**:
 - More than 3 classes affected
@@ -596,8 +762,10 @@ else:
 - Conditional simplification
 - Local refactoring within methods
 
-**Naming**: `refactor/mr-{iid}-ai-suggestions`  
+**Branch Naming**: `refactor/mr-{iid}-ai-suggestions`  
 **Description**: Rationale for each refactoring with code examples
+
+**Branch Strategy Rationale**: Same as Fixes MR - allows developer to integrate refactoring into their feature branch before merging to main
 
 ---
 
@@ -974,11 +1142,17 @@ services:
 ### A. Glossary
 
 - **CLI Agent**: Command-line AI tool (Cline or Qwen Code) that performs code analysis
-- **Review Type**: Specific category of code analysis (ERROR_DETECTION, SECURITY_AUDIT, etc.)
-- **Fix MR**: Merge request automatically created with issue fixes
-- **Refactoring MR**: Merge request with refactoring suggestions (if significant)
+- **Review Type**: Specific category of code analysis (ERROR_DETECTION, SECURITY_AUDIT, UNIT_TEST_COVERAGE, MEMORY_BANK, etc.)
+- **Fix MR**: Merge request automatically created with issue fixes, branched from MR source branch
+- **Refactoring MR**: Merge request with refactoring suggestions (if significant), branched from MR source branch
 - **SIGNIFICANT Refactoring**: Large-scale refactoring requiring separate MR (>3 classes, breaking changes, >200 LOC)
 - **MINOR Refactoring**: Small-scale refactoring included in fix MR (renames, constant extraction)
+- **UNIT_TEST_COVERAGE**: Review type that automatically generates missing unit tests
+- **MEMORY_BANK**: Review type that maintains project knowledge base (Memory Bank)
+- **Memory Bank**: Structured collection of markdown files documenting project context, patterns, and decisions
+- **System Prompt**: Global prompt prepended to all reviews with code style standards and Memory Bank integration
+- **MR Source Branch**: The feature branch being reviewed (source of the MR)
+- **MR Target Branch**: The branch the MR will be merged into (e.g., main, develop)
 
 ### B. References
 
@@ -995,8 +1169,13 @@ services:
 | 2025-11 | Use CLI agents instead of direct model calls | Better code understanding, context management |
 | 2025-11 | Single agent execution (not combined) | Avoid conflicting recommendations |
 | 2025-11 | Minimal GitLab API usage | Reduce rate limits, better performance |
-| 2025-11 | 11 review types | Comprehensive coverage based on research |
+| 2025-11 | 13 review types (expanded from 11) | Added UNIT_TEST_COVERAGE and MEMORY_BANK for comprehensive coverage |
 | 2025-11 | Separate refactoring MRs for significant changes | Give developers choice |
+| 2025-11 | Fix/refactor branches from MR source (not target) | Allow developers to integrate changes into feature branch first |
+| 2025-11 | System prompt with Memory Bank integration | Consistent code style + context-aware recommendations |
+| 2025-11 | CLI writes files, FastAPI handles Git operations | Clear separation of concerns for Memory Bank updates |
+| 2025-11 | Auto-generate unit tests with UNIT_TEST_COVERAGE | Ensure code coverage without manual test writing |
+| 2025-11 | Auto-update Memory Bank with each MR | Living documentation that evolves with project |
 
 ---
 
