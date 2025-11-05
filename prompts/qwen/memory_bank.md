@@ -6,6 +6,26 @@
 - **Custom Rules**: {custom_rules}
 - **JIRA Context**: {jira_context}
 
+---
+
+## ⚠️ CRITICAL: Read These Instructions First ⚠️
+
+**MANDATORY**: Before proceeding with analysis, read these critical instruction files:
+
+1. **JSON Output Requirements**: See `prompts/common/critical_json_requirements.md`
+   - Explains EXACT JSON format required
+   - Common mistakes to avoid
+   - Validation checklist
+
+2. **Git Diff Analysis**: See `prompts/common/git_diff_instructions.md`
+   - How to identify changed files
+   - What to analyze vs what to use for context
+   - Proper reporting strategy
+
+**Failure to follow these instructions will result in analysis being rejected.**
+
+---
+
 ## Instructions
 
 Your task is to manage the project's Memory Bank based on the Cursor's Memory Bank (v1.2 Final) structure. There are THREE operating modes:
@@ -754,6 +774,21 @@ Quick navigation to tagged insights across Memory Bank files.
 6. **Use Mermaid**: Include diagrams where helpful
 
 ### Output Format
+
+### ⚠️ CRITICAL: JSON Output Requirements ⚠️
+
+**READ**: `prompts/common/critical_json_requirements.md` for complete rules.
+
+**Key Points**:
+1. Output ONLY valid JSON, no other text
+2. NO markdown code blocks (no ```json)
+3. Include ALL required fields
+4. Use exact field names and types
+5. Validate before outputting
+
+**Validation**: Your output will be validated against `schemas/review_result_schema.json`
+
+### Required JSON Structure
 
 After creating Memory Bank:
 

@@ -1,14 +1,15 @@
 import sys
 from loguru import logger
-from app.config import settings
+from app.config import get_settings
 
 
 def setup_logger():
+    settings = get_settings()
     logger.remove()
     logger.add(
         sys.stdout,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
-        level=settings.log_level,
+        level=settings.LOG_LEVEL,
         colorize=True
     )
 

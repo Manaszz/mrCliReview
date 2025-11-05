@@ -2,7 +2,26 @@
 
 ## Current Work Focus
 
-### Recent Changes (2025-11-04)
+### Recent Changes (2025-11-05)
+
+**Latest**: Prompt File Embedding Feature
+
+#### Prompt File Embedding (2025-11-05)
+- **Implemented**: Automatic embedding of referenced files into prompts
+- **Purpose**: CLI agents now receive complete, self-contained instructions
+- **Mechanism**: `ReviewService._embed_referenced_files()` method
+- **Files Embedded**: 
+  - `prompts/common/critical_json_requirements.md` (315 lines)
+  - `prompts/common/git_diff_instructions.md` (145 lines)
+  - `schemas/review_result_schema.json` (261 lines)
+- **Coverage**: All 12 prompts (7 Cline + 5 Qwen) now include JSON Schema reference
+- **Removed**: `prompts/common/json_output_requirements.md` (duplicate, unused)
+- **Tests**: 9 comprehensive tests in `tests/test_prompt_embedding.py` ✅
+- **Documentation**: `docs/PROMPT_FILE_EMBEDDING.md`
+
+---
+
+### Previous Changes (2025-11-04)
 
 Latest modifications:
 

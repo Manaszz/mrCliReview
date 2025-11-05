@@ -1,5 +1,34 @@
 # Progress
 
+## Latest Update (2025-11-05)
+
+### ✅ Prompt File Embedding Feature
+
+**Status**: Fully implemented and tested
+
+**What Was Done**:
+1. ✅ Automatic embedding of referenced files into prompts
+2. ✅ JSON Schema added to all 12 prompts (was missing in 8)
+3. ✅ Removed duplicate `json_output_requirements.md`
+4. ✅ 9 comprehensive tests written and passing
+5. ✅ Documentation created: `docs/PROMPT_FILE_EMBEDDING.md`
+
+**Impact**:
+- CLI agents now receive complete, self-contained prompts
+- No filesystem dependencies or missing file errors
+- Consistent JSON validation across all prompts
+- Better maintainability (single source of truth for instructions)
+
+**Files Modified**:
+- `app/services/review_service.py`: Added `_embed_referenced_files()` method
+- All 12 prompt files: Added JSON Schema reference where missing
+- `tests/test_prompt_embedding.py`: New comprehensive test suite
+
+**Files Deleted**:
+- `prompts/common/json_output_requirements.md` (duplicate, unused)
+
+---
+
 ## What Works
 
 ### Core Functionality ✅

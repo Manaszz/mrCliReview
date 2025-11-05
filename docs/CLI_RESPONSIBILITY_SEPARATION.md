@@ -675,3 +675,4 @@ class ReviewRequest(BaseModel):
 **Вывод:** Чистое разделение - CLI анализирует и пишет файлы, FastAPI делает всё остальное (Git + GitLab).
 
 
+

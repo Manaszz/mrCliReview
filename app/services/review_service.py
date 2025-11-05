@@ -158,14 +158,14 @@ class ReviewService:
         review_types: List[ReviewType]
     ) -> Dict[ReviewType, str]:
         """
-        Load prompt files for review types
+        Load prompt files for review types and embed referenced files
         
         Args:
             agent: CLI agent (determines prompt directory)
             review_types: List of review types
             
         Returns:
-            Dict mapping review type to prompt content
+            Dict mapping review type to prompt content with embedded references
         """
         prompts = {}
         
@@ -193,7 +193,12 @@ class ReviewService:
             if prompt_path.exists():
                 try:
                     with open(prompt_path, 'r', encoding='utf-8') as f:
-                        prompts[review_type] = f.read()
+                        prompt_content = f.read()
+                    
+                    # Embed referenced files
+                    prompt_content = self._embed_referenced_files(prompt_content)
+                    
+                    prompts[review_type] = prompt_content
                     logger.debug(f"Loaded prompt for {review_type.value}: {prompt_path}")
                 except Exception as e:
                     logger.error(f"Failed to load prompt {prompt_path}: {str(e)}")
@@ -203,6 +208,107 @@ class ReviewService:
                 prompts[review_type] = self._get_fallback_prompt(review_type)
         
         return prompts
+    
+    def _embed_referenced_files(self, prompt_content: str) -> str:
+        """
+        Find and embed referenced files into prompt content
+        
+        Finds references like:
+        - See `prompts/common/critical_json_requirements.md`
+        - `schemas/review_result_schema.json`
+        
+        Loads file content and appends to prompt (once per unique file).
+        Removes all references to embedded files from the original prompt.
+        
+        Args:
+            prompt_content: Original prompt content with references
+            
+        Returns:
+            Prompt with embedded file contents and references removed
+        """
+        import re
+        import json
+        
+        # Pattern to find file references
+        # Matches: `prompts/...` or `schemas/...`
+        pattern = r'`((?:prompts|schemas)/[^`]+\.(md|json))`'
+        
+        # Find all unique referenced files
+        referenced_files = set(re.findall(pattern, prompt_content))
+        
+        if not referenced_files:
+            return prompt_content
+        
+        # Remove all references to files from the prompt FIRST
+        # This ensures references are removed even if file doesn't exist or can't be loaded
+        modified_content = prompt_content
+        all_file_refs = [f for f, _ in referenced_files]
+        
+        for file_ref in all_file_refs:
+            # Remove entire lines that reference this file
+            pattern_line = rf'^.*`{re.escape(file_ref)}`.*$'
+            modified_content = re.sub(pattern_line, '', modified_content, flags=re.MULTILINE)
+        
+        # Clean up multiple consecutive blank lines (left after removing references)
+        # Replace 3+ newlines with just 2 newlines (single blank line)
+        modified_content = re.sub(r'\n\n\n+', '\n\n', modified_content)
+        
+        # Now try to load and embed files
+        embeddings = {}
+        
+        for file_match, ext in referenced_files:
+            file_path = Path(file_match)
+            
+            if not file_path.exists():
+                logger.warning(f"Referenced file not found: {file_path}")
+                continue
+            
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # For JSON files, format them nicely
+                if ext == 'json':
+                    try:
+                        json_data = json.loads(content)
+                        content = json.dumps(json_data, indent=2)
+                    except json.JSONDecodeError:
+                        pass  # Keep original if not valid JSON
+                else:
+                    # For markdown files, also remove any file references in the embedded content
+                    # to avoid nested references (e.g., critical_json_requirements.md references schema.json)
+                    for ref_to_remove in all_file_refs:
+                        pattern_line = rf'^.*`{re.escape(ref_to_remove)}`.*$'
+                        content = re.sub(pattern_line, '', content, flags=re.MULTILINE)
+                    # Clean up blank lines in embedded content too
+                    content = re.sub(r'\n{3,}', '\n\n', content)
+                
+                embeddings[file_match] = content
+                logger.info(f"Embedding referenced file: {file_path}")
+                
+            except Exception as e:
+                logger.error(f"Failed to load referenced file {file_path}: {str(e)}")
+        
+        # If no files could be embedded, return cleaned content without embedded section
+        if not embeddings:
+            return modified_content
+        
+        # Append embedded content at the end
+        embedded_section = "\n\n---\n\n"
+        embedded_section += "## 📎 Embedded Reference Files\n\n"
+        embedded_section += "*The following files are embedded for your reference (originally referenced in this prompt):*\n\n"
+        
+        for file_ref, content in embeddings.items():
+            file_type = "JSON Schema" if file_ref.endswith('.json') else "Markdown Document"
+            embedded_section += f"\n### 📄 {file_ref} ({file_type})\n\n"
+            
+            # For JSON, wrap in code block
+            if file_ref.endswith('.json'):
+                embedded_section += f"```json\n{content}\n```\n"
+            else:
+                embedded_section += f"{content}\n"
+        
+        return modified_content + embedded_section
     
     def _get_fallback_prompt(self, review_type: ReviewType) -> str:
         """

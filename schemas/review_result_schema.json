@@ -1,0 +1,260 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://code-review-system/schemas/review_result.json",
+  "title": "Code Review Result",
+  "description": "Schema for code review results from CLI agents",
+  "type": "object",
+  "required": ["review_type", "issues", "summary"],
+  "properties": {
+    "review_type": {
+      "type": "string",
+      "description": "Type of review performed",
+      "enum": [
+        "ERROR_DETECTION",
+        "BEST_PRACTICES",
+        "REFACTORING",
+        "SECURITY_AUDIT",
+        "DOCUMENTATION",
+        "PERFORMANCE",
+        "ARCHITECTURE",
+        "TRANSACTION_MANAGEMENT",
+        "CONCURRENCY",
+        "DATABASE_OPTIMIZATION",
+        "UNIT_TEST_COVERAGE",
+        "MEMORY_BANK",
+        "ALL"
+      ]
+    },
+    "changed_files": {
+      "type": "array",
+      "description": "List of files that were analyzed (from git diff)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files_analyzed_count": {
+      "type": "integer",
+      "description": "Number of files actually analyzed",
+      "minimum": 0
+    },
+    "issues": {
+      "type": "array",
+      "description": "List of issues found during review",
+      "items": {
+        "type": "object",
+        "required": ["file", "severity", "category", "message", "suggestion", "auto_fixable"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "File path relative to repository root"
+          },
+          "line": {
+            "type": "integer",
+            "description": "Line number where issue occurs",
+            "minimum": 1
+          },
+          "severity": {
+            "type": "string",
+            "description": "Issue severity level",
+            "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
+          },
+          "category": {
+            "type": "string",
+            "description": "Issue category (e.g., NullPointerException Risk, SQL Injection)"
+          },
+          "message": {
+            "type": "string",
+            "description": "Detailed description of the issue"
+          },
+          "code_snippet": {
+            "type": "string",
+            "description": "Code snippet showing the problematic code"
+          },
+          "suggestion": {
+            "type": "string",
+            "description": "How to fix the issue"
+          },
+          "auto_fixable": {
+            "type": "boolean",
+            "description": "Whether the issue can be automatically fixed"
+          },
+          "cwe": {
+            "type": "string",
+            "description": "CWE reference for security issues (e.g., CWE-89)",
+            "pattern": "^CWE-\\d+$"
+          },
+          "rule_source": {
+            "type": "string",
+            "description": "Source of the rule that detected this issue",
+            "enum": ["default", "project_custom", "confluence"]
+          }
+        }
+      }
+    },
+    "refactoring_suggestions": {
+      "type": "array",
+      "description": "Refactoring suggestions (for REFACTORING review type)",
+      "items": {
+        "type": "object",
+        "required": ["file", "severity", "category", "message", "suggestion", "impact", "effort"],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
+          },
+          "category": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code_snippet": {
+            "type": "string"
+          },
+          "suggestion": {
+            "type": "string"
+          },
+          "impact": {
+            "type": "string",
+            "description": "Impact of refactoring",
+            "enum": ["SIGNIFICANT", "MINOR"]
+          },
+          "effort": {
+            "type": "string",
+            "description": "Estimated effort to implement",
+            "enum": ["LOW", "MEDIUM", "HIGH"]
+          },
+          "auto_fixable": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "documentation": {
+      "type": "array",
+      "description": "Documentation additions (for DOCUMENTATION review type)",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "type", "generated_doc", "reason"],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of documentation",
+            "enum": ["CLASS_JAVADOC", "METHOD_JAVADOC", "INLINE_COMMENT", "FIELD_COMMENT"]
+          },
+          "generated_doc": {
+            "type": "string",
+            "description": "Generated documentation content"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why this documentation was generated"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Summary of review results",
+      "required": ["total_issues", "critical", "high", "medium", "low"],
+      "properties": {
+        "total_issues": {
+          "type": "integer",
+          "description": "Total number of issues found",
+          "minimum": 0
+        },
+        "critical": {
+          "type": "integer",
+          "description": "Number of critical issues",
+          "minimum": 0
+        },
+        "high": {
+          "type": "integer",
+          "description": "Number of high severity issues",
+          "minimum": 0
+        },
+        "medium": {
+          "type": "integer",
+          "description": "Number of medium severity issues",
+          "minimum": 0
+        },
+        "low": {
+          "type": "integer",
+          "description": "Number of low severity issues",
+          "minimum": 0
+        },
+        "info": {
+          "type": "integer",
+          "description": "Number of info level issues",
+          "minimum": 0
+        },
+        "files_analyzed": {
+          "type": "integer",
+          "description": "Number of files analyzed",
+          "minimum": 0
+        },
+        "auto_fixable_count": {
+          "type": "integer",
+          "description": "Number of issues that can be auto-fixed",
+          "minimum": 0
+        },
+        "analysis_incomplete": {
+          "type": "boolean",
+          "description": "Flag indicating if analysis was incomplete"
+        },
+        "files_pending": {
+          "type": "integer",
+          "description": "Number of files not analyzed (if incomplete)",
+          "minimum": 0
+        },
+        "timeout_approaching": {
+          "type": "boolean",
+          "description": "Flag indicating if timeout is approaching"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the analysis",
+      "properties": {
+        "execution_time_seconds": {
+          "type": "number",
+          "description": "Time taken to complete analysis",
+          "minimum": 0
+        },
+        "model_used": {
+          "type": "string",
+          "description": "Model name used for analysis"
+        },
+        "truncation_reason": {
+          "type": "string",
+          "description": "Reason for truncation if results were truncated"
+        }
+      }
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message if analysis failed"
+    },
+    "error_type": {
+      "type": "string",
+      "description": "Type of error that occurred",
+      "enum": ["GIT_ERROR", "PARSE_ERROR", "TIMEOUT", "FILE_NOT_FOUND", "UNKNOWN"]
+    }
+  }
+}
+

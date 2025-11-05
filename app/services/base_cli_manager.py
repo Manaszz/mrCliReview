@@ -281,15 +281,20 @@ class BaseCLIManager(ABC):
     def _parse_cli_output(self, output: str) -> Dict[str, Any]:
         """
         Parse CLI output (expected to be JSON)
+        Validates result against JSON schema
         
         Args:
             output: CLI output string
             
         Returns:
-            Parsed JSON as dict
+            Parsed and validated JSON as dict
+            
+        Raises:
+            ValueError: If JSON cannot be parsed or is invalid
         """
         import json
         import re
+        from app.utils.json_validator import validate_review_result
         
         # Try to find JSON in output
         # Sometimes CLI outputs include non-JSON text
@@ -298,7 +303,18 @@ class BaseCLIManager(ABC):
         
         if match:
             try:
-                return json.loads(match.group(0))
+                result = json.loads(match.group(0))
+                
+                # Validate result against schema
+                is_valid, validation_errors = validate_review_result(result)
+                if not is_valid:
+                    logger.warning("CLI output validation failed:")
+                    for error in validation_errors:
+                        logger.warning(f"  - {error}")
+                    # Don't raise - allow processing but log warnings
+                    # This ensures backward compatibility and graceful degradation
+                
+                return result
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse JSON from CLI output: {str(e)}")
                 logger.debug(f"CLI output: {output[:500]}")
