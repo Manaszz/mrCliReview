@@ -56,8 +56,9 @@ More content.
     
     result = review_service._embed_referenced_files(prompt)
     
-    # Check that reference line is removed
-    assert "See `prompts/common/critical_json_requirements.md`" not in result
+    # Check that reference is replaced with navigation link
+    assert "`prompts/common/critical_json_requirements.md`" not in result
+    assert "[📎 critical_json_requirements.md (embedded below)]" in result
     
     # Check that file content is embedded
     assert "📎 Embedded Reference Files" in result
@@ -76,8 +77,9 @@ More content.
     
     result = review_service._embed_referenced_files(prompt)
     
-    # Check that reference line is removed
+    # Check that reference is replaced with navigation link
     assert "`schemas/review_result_schema.json`" not in result
+    assert "[📎 review_result_schema.json (embedded below)]" in result
     
     # Check that schema is embedded
     assert "📎 Embedded Reference Files" in result
@@ -101,9 +103,9 @@ More content.
     
     result = review_service._embed_referenced_files(prompt)
     
-    # Both reference lines should be removed
-    assert "See `prompts/common/critical_json_requirements.md`" not in result
-    assert "Read `prompts/common/critical_json_requirements.md`" not in result
+    # Both references should be replaced with navigation links
+    assert "`prompts/common/critical_json_requirements.md`" not in result
+    assert result.count("[📎 critical_json_requirements.md (embedded below)]") == 2
     
     # File should be embedded only once
     embedded_count = result.count("prompts/common/critical_json_requirements.md (Markdown Document)")
@@ -123,10 +125,14 @@ Schema: `schemas/review_result_schema.json`
     
     result = review_service._embed_referenced_files(prompt)
     
-    # All references should be removed
+    # All references should be replaced with navigation links
     assert "`prompts/common/critical_json_requirements.md`" not in result
     assert "`prompts/common/git_diff_instructions.md`" not in result
     assert "`schemas/review_result_schema.json`" not in result
+    
+    assert "[📎 critical_json_requirements.md (embedded below)]" in result
+    assert "[📎 git_diff_instructions.md (embedded below)]" in result
+    assert "[📎 review_result_schema.json (embedded below)]" in result
     
     # All files should be embedded
     assert "📎 Embedded Reference Files" in result
@@ -144,8 +150,9 @@ See `prompts/common/nonexistent_file.md` for details.
     
     result = review_service._embed_referenced_files(prompt)
     
-    # Reference should still be removed (to avoid CLI confusion)
+    # Reference should be replaced with navigation link (even if file doesn't exist)
     assert "`prompts/common/nonexistent_file.md`" not in result
+    assert "[📎 nonexistent_file.md (embedded below)]" in result
 
 
 def test_embed_referenced_files_preserves_structure(review_service):
@@ -177,8 +184,9 @@ Use JSON format.
     assert "## Instructions" in result
     assert "## Output Format" in result
     
-    # Check that reference is removed from numbered list
-    assert "1. Read `prompts/common/critical_json_requirements.md`" not in result
+    # Check that reference is replaced with navigation link
+    assert "`prompts/common/critical_json_requirements.md`" not in result
+    assert "1. Read [📎 critical_json_requirements.md (embedded below)]" in result
     
     # Check that embedded section is at the end
     assert result.index("📎 Embedded Reference Files") > result.index("## Output Format")
@@ -196,9 +204,11 @@ def test_load_prompts_with_embedding(review_service):
     assert ReviewType.ERROR_DETECTION in prompts
     prompt_content = prompts[ReviewType.ERROR_DETECTION]
     
-    # Check that references are removed
+    # Check that references are replaced with navigation links
     assert "`prompts/common/critical_json_requirements.md`" not in prompt_content
     assert "`prompts/common/git_diff_instructions.md`" not in prompt_content
+    assert "[📎 critical_json_requirements.md (embedded below)]" in prompt_content
+    assert "[📎 git_diff_instructions.md (embedded below)]" in prompt_content
     
     # Check that content is embedded
     assert "📎 Embedded Reference Files" in prompt_content

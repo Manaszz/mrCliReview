@@ -239,15 +239,20 @@ class ReviewService:
         if not referenced_files:
             return prompt_content
         
-        # Remove all references to files from the prompt FIRST
-        # This ensures references are removed even if file doesn't exist or can't be loaded
+        # Replace file references with navigation links to embedded sections
+        # This preserves context while pointing to embedded content
         modified_content = prompt_content
         all_file_refs = [f for f, _ in referenced_files]
         
         for file_ref in all_file_refs:
-            # Remove entire lines that reference this file
-            pattern_line = rf'^.*`{re.escape(file_ref)}`.*$'
-            modified_content = re.sub(pattern_line, '', modified_content, flags=re.MULTILINE)
+            # Extract just the filename for the link
+            file_name = Path(file_ref).name
+            
+            # Replace the backtick reference with a navigation link
+            # Example: `prompts/common/file.md` → [📎 file.md (embedded below)]
+            pattern_ref = rf'`{re.escape(file_ref)}`'
+            replacement = f'[📎 {file_name} (embedded below)]'
+            modified_content = re.sub(pattern_ref, replacement, modified_content)
         
         # Clean up multiple consecutive blank lines (left after removing references)
         # Replace 3+ newlines with just 2 newlines (single blank line)
@@ -275,11 +280,13 @@ class ReviewService:
                     except json.JSONDecodeError:
                         pass  # Keep original if not valid JSON
                 else:
-                    # For markdown files, also remove any file references in the embedded content
+                    # For markdown files, also replace any file references in the embedded content
                     # to avoid nested references (e.g., critical_json_requirements.md references schema.json)
                     for ref_to_remove in all_file_refs:
-                        pattern_line = rf'^.*`{re.escape(ref_to_remove)}`.*$'
-                        content = re.sub(pattern_line, '', content, flags=re.MULTILINE)
+                        ref_name = Path(ref_to_remove).name
+                        pattern_ref = rf'`{re.escape(ref_to_remove)}`'
+                        replacement = f'[📎 {ref_name} (see embedded files)]'
+                        content = re.sub(pattern_ref, replacement, content)
                     # Clean up blank lines in embedded content too
                     content = re.sub(r'\n{3,}', '\n\n', content)
                 
