@@ -1,0 +1,501 @@
+"""
+Review Service
+
+Main orchestrator for code reviews. Coordinates CLI managers, rules loading,
+GitLab integration, and MR creation.
+"""
+
+from typing import List, Dict, Any, Optional
+from pathlib import Path
+import logging
+import time
+from datetime import datetime
+
+from app.models import (
+    ReviewRequest,
+    ReviewResult,
+    ReviewSummary,
+    ReviewIssue,
+    RefactoringSuggestion,
+    DocumentationAddition,
+    ReviewType,
+    CLIAgent,
+    IssueSeverity,
+    RefactoringImpact
+)
+from app.services.base_cli_manager import BaseCLIManager
+from app.services.cline_cli_manager import ClineCLIManager
+from app.services.qwen_code_cli_manager import QwenCodeCLIManager
+from app.services.custom_rules_loader import CustomRulesLoader
+
+logger = logging.getLogger(__name__)
+
+
+class ReviewService:
+    """Main service for orchestrating code reviews"""
+    
+    def __init__(
+        self,
+        cline_manager: ClineCLIManager,
+        qwen_manager: QwenCodeCLIManager,
+        rules_loader: CustomRulesLoader,
+        prompts_base_path: str = "prompts"
+    ):
+        """
+        Initialize review service
+        
+        Args:
+            cline_manager: Cline CLI manager instance
+            qwen_manager: Qwen Code CLI manager instance
+            rules_loader: Rules loader instance
+            prompts_base_path: Base path for prompt files
+        """
+        self.cline_manager = cline_manager
+        self.qwen_manager = qwen_manager
+        self.rules_loader = rules_loader
+        self.prompts_base_path = Path(prompts_base_path)
+        
+    async def execute_review(
+        self,
+        request: ReviewRequest,
+        repo_path: str
+    ) -> ReviewResult:
+        """
+        Execute complete code review
+        
+        Args:
+            request: Review request with parameters
+            repo_path: Path to cloned repository
+            
+        Returns:
+            ReviewResult with all findings
+            
+        Note:
+            Changed files are automatically determined by CLI agents via git diff.
+            No need to pass changed_files list - CLI detects them automatically.
+        """
+        start_time = time.time()
+        
+        # Select CLI manager
+        cli_manager = self._get_cli_manager(request.agent)
+        logger.info(f"Using {request.agent.value} for review")
+        
+        # Load rules
+        rules = self.rules_loader.load_rules(
+            language=request.language.value,
+            repo_path=repo_path,
+            confluence_rules=request.confluence_rules
+        )
+        logger.info(f"Loaded {len(rules)} rule categories")
+        
+        # Get combined rules content for prompts
+        combined_rules = self.rules_loader.get_combined_rules_content(rules)
+        
+        # Expand ALL review type
+        review_types = self._expand_review_types(request.review_types)
+        logger.info(f"Executing {len(review_types)} review types: {[rt.value for rt in review_types]}")
+        
+        # Load prompts for review types
+        prompts = self._load_prompts(request.agent, review_types)
+        
+        # Execute reviews in parallel
+        # Note: changed_files are automatically determined by CLI via git diff
+        raw_results = await cli_manager.execute_parallel_reviews(
+            review_types=review_types,
+            repo_path=repo_path,
+            prompts=prompts,
+            custom_rules=combined_rules,
+            jira_context=request.jira_context
+        )
+        
+        # Aggregate results
+        result = self._aggregate_results(
+            raw_results=raw_results,
+            agent=request.agent,
+            start_time=start_time
+        )
+        
+        logger.info(f"Review completed: {result.summary.total_issues} issues found")
+        return result
+    
+    def _get_cli_manager(self, agent: CLIAgent) -> BaseCLIManager:
+        """Get appropriate CLI manager"""
+        if agent == CLIAgent.CLINE:
+            return self.cline_manager
+        elif agent == CLIAgent.QWEN_CODE:
+            return self.qwen_manager
+        else:
+            raise ValueError(f"Unknown CLI agent: {agent}")
+    
+    def _expand_review_types(self, review_types: List[ReviewType]) -> List[ReviewType]:
+        """
+        Expand ALL review type to specific types
+        
+        Args:
+            review_types: Requested review types
+            
+        Returns:
+            List of specific review types
+        """
+        if ReviewType.ALL in review_types:
+            return [
+                ReviewType.ERROR_DETECTION,
+                ReviewType.BEST_PRACTICES,
+                ReviewType.REFACTORING,
+                ReviewType.SECURITY_AUDIT,
+                ReviewType.DOCUMENTATION,
+                ReviewType.PERFORMANCE,
+                ReviewType.ARCHITECTURE,
+                ReviewType.TRANSACTION_MANAGEMENT,
+                ReviewType.CONCURRENCY,
+                ReviewType.DATABASE_OPTIMIZATION
+            ]
+        return review_types
+    
+    def _load_prompts(
+        self,
+        agent: CLIAgent,
+        review_types: List[ReviewType]
+    ) -> Dict[ReviewType, str]:
+        """
+        Load prompt files for review types and embed referenced files
+        
+        Args:
+            agent: CLI agent (determines prompt directory)
+            review_types: List of review types
+            
+        Returns:
+            Dict mapping review type to prompt content with embedded references
+        """
+        prompts = {}
+        
+        # Determine prompt directory based on agent
+        if agent == CLIAgent.CLINE:
+            prompt_dir = self.prompts_base_path / "cline"
+        elif agent == CLIAgent.QWEN_CODE:
+            prompt_dir = self.prompts_base_path / "qwen"
+        else:
+            raise ValueError(f"Unknown agent: {agent}")
+        
+        # Additional prompts directory
+        additional_dir = self.prompts_base_path / "additional"
+        
+        for review_type in review_types:
+            # Convert review type to filename
+            filename = f"{review_type.value.lower()}.md"
+            
+            # Try agent-specific prompt first
+            prompt_path = prompt_dir / filename
+            if not prompt_path.exists():
+                # Try additional prompts
+                prompt_path = additional_dir / filename
+            
+            if prompt_path.exists():
+                try:
+                    with open(prompt_path, 'r', encoding='utf-8') as f:
+                        prompt_content = f.read()
+                    
+                    # Embed referenced files
+                    prompt_content = self._embed_referenced_files(prompt_content)
+                    
+                    prompts[review_type] = prompt_content
+                    logger.debug(f"Loaded prompt for {review_type.value}: {prompt_path}")
+                except Exception as e:
+                    logger.error(f"Failed to load prompt {prompt_path}: {str(e)}")
+                    prompts[review_type] = self._get_fallback_prompt(review_type)
+            else:
+                logger.warning(f"Prompt file not found for {review_type.value}: {prompt_path}")
+                prompts[review_type] = self._get_fallback_prompt(review_type)
+        
+        return prompts
+    
+    def _embed_referenced_files(self, prompt_content: str) -> str:
+        """
+        Find and embed referenced files into prompt content
+        
+        Finds references like:
+        - See `prompts/common/critical_json_requirements.md`
+        - `schemas/review_result_schema.json`
+        
+        Loads file content and appends to prompt (once per unique file).
+        Removes all references to embedded files from the original prompt.
+        
+        Args:
+            prompt_content: Original prompt content with references
+            
+        Returns:
+            Prompt with embedded file contents and references removed
+        """
+        import re
+        import json
+        
+        # Pattern to find file references
+        # Matches: `prompts/...` or `schemas/...`
+        pattern = r'`((?:prompts|schemas)/[^`]+\.(md|json))`'
+        
+        # Find all unique referenced files
+        referenced_files = set(re.findall(pattern, prompt_content))
+        
+        if not referenced_files:
+            return prompt_content
+        
+        # Replace file references with navigation links to embedded sections
+        # This preserves context while pointing to embedded content
+        modified_content = prompt_content
+        all_file_refs = [f for f, _ in referenced_files]
+        
+        for file_ref in all_file_refs:
+            # Extract just the filename for the link
+            file_name = Path(file_ref).name
+            
+            # Replace the backtick reference with a navigation link
+            # Example: `prompts/common/file.md` → [📎 file.md (embedded below)]
+            pattern_ref = rf'`{re.escape(file_ref)}`'
+            replacement = f'[📎 {file_name} (embedded below)]'
+            modified_content = re.sub(pattern_ref, replacement, modified_content)
+        
+        # Clean up multiple consecutive blank lines (left after removing references)
+        # Replace 3+ newlines with just 2 newlines (single blank line)
+        modified_content = re.sub(r'\n\n\n+', '\n\n', modified_content)
+        
+        # Now try to load and embed files
+        embeddings = {}
+        
+        for file_match, ext in referenced_files:
+            file_path = Path(file_match)
+            
+            if not file_path.exists():
+                logger.warning(f"Referenced file not found: {file_path}")
+                continue
+            
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # For JSON files, format them nicely
+                if ext == 'json':
+                    try:
+                        json_data = json.loads(content)
+                        content = json.dumps(json_data, indent=2)
+                    except json.JSONDecodeError:
+                        pass  # Keep original if not valid JSON
+                else:
+                    # For markdown files, also replace any file references in the embedded content
+                    # to avoid nested references (e.g., critical_json_requirements.md references schema.json)
+                    for ref_to_remove in all_file_refs:
+                        ref_name = Path(ref_to_remove).name
+                        pattern_ref = rf'`{re.escape(ref_to_remove)}`'
+                        replacement = f'[📎 {ref_name} (see embedded files)]'
+                        content = re.sub(pattern_ref, replacement, content)
+                    # Clean up blank lines in embedded content too
+                    content = re.sub(r'\n{3,}', '\n\n', content)
+                
+                embeddings[file_match] = content
+                logger.info(f"Embedding referenced file: {file_path}")
+                
+            except Exception as e:
+                logger.error(f"Failed to load referenced file {file_path}: {str(e)}")
+        
+        # If no files could be embedded, return cleaned content without embedded section
+        if not embeddings:
+            return modified_content
+        
+        # Append embedded content at the end
+        embedded_section = "\n\n---\n\n"
+        embedded_section += "## 📎 Embedded Reference Files\n\n"
+        embedded_section += "*The following files are embedded for your reference (originally referenced in this prompt):*\n\n"
+        
+        for file_ref, content in embeddings.items():
+            file_type = "JSON Schema" if file_ref.endswith('.json') else "Markdown Document"
+            embedded_section += f"\n### 📄 {file_ref} ({file_type})\n\n"
+            
+            # For JSON, wrap in code block
+            if file_ref.endswith('.json'):
+                embedded_section += f"```json\n{content}\n```\n"
+            else:
+                embedded_section += f"{content}\n"
+        
+        return modified_content + embedded_section
+    
+    def _get_fallback_prompt(self, review_type: ReviewType) -> str:
+        """
+        Generate fallback prompt if file not found
+        
+        Args:
+            review_type: Review type
+            
+        Returns:
+            Basic prompt content
+        """
+        return f"""# {review_type.value} Review
+
+## Objective
+Perform {review_type.value.replace('_', ' ').lower()} analysis on the provided code changes.
+
+## Context
+- Repository Path: {{repo_path}}
+- Language: {{language}}
+
+Note: Changed files will be automatically determined by CLI via git diff
+
+## Instructions
+1. Analyze the changed files
+2. Identify issues related to {review_type.value.replace('_', ' ').lower()}
+3. Provide specific, actionable feedback
+4. Output results in JSON format
+
+## Output Format
+```json
+{{
+  "review_type": "{review_type.value}",
+  "issues": [
+    {{
+      "file": "path/to/file",
+      "line": 123,
+      "severity": "HIGH",
+      "category": "Category",
+      "message": "Issue description",
+      "suggestion": "How to fix"
+    }}
+  ],
+  "summary": {{
+    "total_issues": 0
+  }}
+}}
+```
+"""
+    
+    def _aggregate_results(
+        self,
+        raw_results: List[Dict[str, Any]],
+        agent: CLIAgent,
+        start_time: float
+    ) -> ReviewResult:
+        """
+        Aggregate multiple review results into single ReviewResult
+        
+        Args:
+            raw_results: List of raw review results from CLI
+            agent: CLI agent used
+            start_time: Review start time
+            
+        Returns:
+            Aggregated ReviewResult
+        """
+        all_issues = []
+        all_refactoring = []
+        all_documentation = []
+        
+        for result in raw_results:
+            # Parse issues
+            for issue_data in result.get('issues', []):
+                try:
+                    issue = ReviewIssue(
+                        file=issue_data.get('file', 'unknown'),
+                        line=issue_data.get('line'),
+                        severity=IssueSeverity(issue_data.get('severity', 'MEDIUM')),
+                        category=issue_data.get('category', 'Unknown'),
+                        message=issue_data.get('message', ''),
+                        code_snippet=issue_data.get('code_snippet'),
+                        suggestion=issue_data.get('suggestion', ''),
+                        auto_fixable=issue_data.get('auto_fixable', False),
+                        cwe=issue_data.get('cwe'),
+                        rule_source=issue_data.get('rule_source', 'default')
+                    )
+                    all_issues.append(issue)
+                except Exception as e:
+                    logger.error(f"Failed to parse issue: {str(e)}")
+            
+            # Parse refactoring suggestions
+            for refactor_data in result.get('refactoring_suggestions', []):
+                try:
+                    refactor = RefactoringSuggestion(
+                        file=refactor_data.get('file', 'unknown'),
+                        line=refactor_data.get('line'),
+                        severity=IssueSeverity(refactor_data.get('severity', 'MEDIUM')),
+                        category=refactor_data.get('category', 'Refactoring'),
+                        message=refactor_data.get('message', ''),
+                        code_snippet=refactor_data.get('code_snippet'),
+                        suggestion=refactor_data.get('suggestion', ''),
+                        impact=RefactoringImpact(refactor_data.get('impact', 'MINOR')),
+                        effort=refactor_data.get('effort', 'MEDIUM'),
+                        auto_fixable=refactor_data.get('auto_fixable', False)
+                    )
+                    all_refactoring.append(refactor)
+                except Exception as e:
+                    logger.error(f"Failed to parse refactoring suggestion: {str(e)}")
+            
+            # Parse documentation
+            for doc_data in result.get('documentation', []):
+                try:
+                    doc = DocumentationAddition(
+                        file=doc_data.get('file', 'unknown'),
+                        line=doc_data.get('line', 1),
+                        type=doc_data.get('type', 'COMMENT'),
+                        generated_doc=doc_data.get('generated_doc', ''),
+                        reason=doc_data.get('reason', '')
+                    )
+                    all_documentation.append(doc)
+                except Exception as e:
+                    logger.error(f"Failed to parse documentation: {str(e)}")
+        
+        # Calculate summary
+        summary = ReviewSummary(
+            total_issues=len(all_issues),
+            critical=sum(1 for i in all_issues if i.severity == IssueSeverity.CRITICAL),
+            high=sum(1 for i in all_issues if i.severity == IssueSeverity.HIGH),
+            medium=sum(1 for i in all_issues if i.severity == IssueSeverity.MEDIUM),
+            low=sum(1 for i in all_issues if i.severity == IssueSeverity.LOW),
+            info=sum(1 for i in all_issues if i.severity == IssueSeverity.INFO),
+            files_analyzed=len(set(i.file for i in all_issues)),
+            auto_fixable_count=sum(1 for i in all_issues if i.auto_fixable)
+        )
+        
+        execution_time = time.time() - start_time
+        
+        return ReviewResult(
+            review_type=ReviewType.ALL,  # Indicates combined review
+            agent=agent,
+            issues=all_issues,
+            refactoring_suggestions=all_refactoring,
+            documentation_additions=all_documentation,
+            summary=summary,
+            execution_time_seconds=execution_time,
+            timestamp=datetime.utcnow()
+        )
+    
+    async def health_check(self) -> Dict[str, bool]:
+        """
+        Check health of CLI agents and dependencies
+        
+        Returns:
+            Dict with availability status of components
+        """
+        results = {}
+        
+        # Check Cline CLI
+        try:
+            results['cline_available'] = await self.cline_manager.check_availability()
+            results['cline_model_connected'] = await self.cline_manager.test_model_connection()
+        except Exception as e:
+            logger.error(f"Cline health check failed: {str(e)}")
+            results['cline_available'] = False
+            results['cline_model_connected'] = False
+        
+        # Check Qwen Code CLI
+        try:
+            results['qwen_available'] = await self.qwen_manager.check_availability()
+            results['qwen_model_connected'] = await self.qwen_manager.test_model_connection()
+        except Exception as e:
+            logger.error(f"Qwen Code health check failed: {str(e)}")
+            results['qwen_available'] = False
+            results['qwen_model_connected'] = False
+        
+        # Overall model API connection
+        results['model_api_connected'] = (
+            results.get('cline_model_connected', False) or 
+            results.get('qwen_model_connected', False)
+        )
+        
+        return results
+

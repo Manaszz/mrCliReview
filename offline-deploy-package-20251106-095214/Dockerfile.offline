@@ -1,0 +1,69 @@
+# Офлайн версия Dockerfile - использует готовый образ с Node.js
+# Этот образ нужно скачать заранее в среде с интернетом
+
+# Использовать образ с Node.js уже встроенным
+FROM nikolaik/python-nodejs:python3.11-nodejs18-slim
+
+WORKDIR /app
+
+# Install system dependencies (Git нужен для работы)
+# Эта команда использует только базовые пакеты из образа, без внешних репозиториев
+RUN apt-get update && apt-get install -y \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify Node.js and npm installation
+RUN node --version && npm --version && python --version
+
+# Install CLI tools from offline packages
+# Place *.tgz packages in offline-packages/ directory before build
+COPY offline-packages/*.tgz /tmp/npm-packages/ 2>/dev/null || true
+
+RUN if ls /tmp/npm-packages/*.tgz 1> /dev/null 2>&1; then \
+        echo "Installing CLI tools from offline packages..." && \
+        npm install -g /tmp/npm-packages/cline-*.tgz && \
+        npm install -g /tmp/npm-packages/qwen-code-*.tgz && \
+        rm -rf /tmp/npm-packages; \
+    else \
+        echo "WARNING: No offline packages found in offline-packages/"; \
+        echo "CLI tools will not be installed!"; \
+        exit 1; \
+    fi
+
+# Verify CLI installation (strict check - build will fail if CLIs not found)
+RUN which cline && cline --version || (echo "ERROR: Cline CLI not found!" && exit 1)
+RUN which qwen-code && qwen-code --version || (echo "ERROR: Qwen Code CLI not found!" && exit 1)
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY app/ ./app/
+
+# Copy prompts and rules
+COPY prompts/ ./prompts/
+COPY rules/ ./rules/
+
+# Create work directory for repository clones
+RUN mkdir -p /tmp/review
+
+# Create user and set permissions
+RUN useradd -m -u 1000 appuser \
+    && chown -R appuser:appuser /app \
+    && chown -R appuser:appuser /tmp/review
+
+USER appuser
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"
+
+# Run application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
+
+
