@@ -1,0 +1,65 @@
+# Example Hermes profile config for GitLab MR review automation
+# Adjust paths, ports, and secrets for your environment.
+
+profile:
+  name: gitlab-mr-review
+
+terminal:
+  backend: local
+  cwd: /opt/mrCliReview/runtime
+
+skills:
+  external_dirs:
+    - /opt/mrCliReview/.hermes/skills
+
+platforms:
+  webhook:
+    enabled: true
+    host: 0.0.0.0
+    port: 8644
+    path_prefix: /webhooks
+    extra:
+      rate_limit:
+        requests: 30
+        window_seconds: 60
+      max_body_bytes: 1048576
+      routes:
+        gitlab-mr-review:
+          description: Review GitLab merge requests with OpenCode through Hermes
+          events:
+            - merge_request
+          secret: ${GITLAB_WEBHOOK_SECRET}
+          prompt: |
+            Execute skill gitlab-mr-opencode-review for this GitLab merge request.
+
+            Event context:
+            - event_type: merge_request
+            - project_id: {{project.id}}
+            - project_path: {{project.path_with_namespace}}
+            - project_web_url: {{project.web_url}}
+            - mr_iid: {{object_attributes.iid}}
+            - mr_title: {{object_attributes.title}}
+            - mr_description: {{object_attributes.description}}
+            - mr_action: {{object_attributes.action}}
+            - source_branch: {{object_attributes.source_branch}}
+            - target_branch: {{object_attributes.target_branch}}
+            - mr_url: {{object_attributes.url}}
+            - last_commit_sha: {{object_attributes.last_commit.id}}
+            - author_name: {{user.name}}
+            - author_username: {{user.username}}
+
+            Rules:
+            1. Ignore actions other than open, update, reopen, approved.
+            2. Do not auto-fix code in v1.
+            3. Produce a single Markdown review summary.
+            4. Publish the result back to the same merge request as a GitLab note.
+            5. Save artifacts under ${HERMES_MR_ROOT}.
+
+          deliver: log
+
+env:
+  GITLAB_URL: https://gitlab.example.com
+  GITLAB_TOKEN: change-me
+  GITLAB_WEBHOOK_SECRET: change-me
+  HERMES_MR_ROOT: /opt/mrCliReview/runtime/mr-review-workspaces
+  OPENCODE_MODEL: gpt-5
